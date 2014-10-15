@@ -1,0 +1,23 @@
+[package]
+
+name = "tiny-asm"
+version = "0.0.1"
+authors = ["Markus Siemens <siemens1993@gmail.com>"]
+
+#[[bin]]
+#name = "tiny-asm"
+#path = "src/assembler/main.rs"
+
+[[bin]]
+name = "tiny-vm"
+path = "src/vm/main.rs"
+
+[profile.dev]
+#opt-level = 2  # Controls the --opt-level the compiler builds with
+debug = true   # Controls whether the compiler passes -g or `--cfg ndebug`
+
+[dependencies.seq]
+git = "https://github.com/japaric/seq.rs.git"
+
+[dependencies.docopt_macros]
+git = "git://github.com/docopt/docopt.rs"
