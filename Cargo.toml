@@ -4,13 +4,9 @@ name = "tiny-asm"
 version = "0.0.1"
 authors = ["Markus Siemens <siemens1993@gmail.com>"]
 
-#[[bin]]
-#name = "tiny-asm"
-#path = "src/assembler/main.rs"
-
 [[bin]]
-name = "tiny-vm"
-path = "src/vm/main.rs"
+name = "tiny"
+path = "src/main.rs"
 
 [profile.dev]
 #opt-level = 2  # Controls the --opt-level the compiler builds with
@@ -20,4 +16,7 @@ debug = true   # Controls whether the compiler passes -g or `--cfg ndebug`
 git = "https://github.com/japaric/seq.rs.git"
 
 [dependencies.docopt_macros]
-git = "git://github.com/docopt/docopt.rs"
+git = "https://github.com/docopt/docopt.rs"
+
+[dependencies.lazy_static]
+git = "https://github.com/Kimundi/lazy-static.rs"

@@ -2,22 +2,28 @@
 name = "tiny-asm"
 version = "0.0.1"
 dependencies = [
- "docopt_macros 0.6.4 (git+git://github.com/docopt/docopt.rs#7515c10dcc94a7263d5e062c434b1465167673dd)",
+ "docopt_macros 0.6.5 (git+https://github.com/docopt/docopt.rs#a73d89a8d953a135dc683080376c4e94501d9f79)",
+ "lazy_static 0.1.0 (git+https://github.com/Kimundi/lazy-static.rs#62976cb611c5396e11315ae64c9c389576240eb7)",
  "seq 0.0.0 (git+https://github.com/japaric/seq.rs.git#a1ec03a2a4796d6ebde65ef478a34e429be0b3ff)",
 ]
 
 [[package]]
 name = "docopt"
-version = "0.6.4"
-source = "git+git://github.com/docopt/docopt.rs#7515c10dcc94a7263d5e062c434b1465167673dd"
+version = "0.6.5"
+source = "git+https://github.com/docopt/docopt.rs#a73d89a8d953a135dc683080376c4e94501d9f79"
 
 [[package]]
 name = "docopt_macros"
-version = "0.6.4"
-source = "git+git://github.com/docopt/docopt.rs#7515c10dcc94a7263d5e062c434b1465167673dd"
+version = "0.6.5"
+source = "git+https://github.com/docopt/docopt.rs#a73d89a8d953a135dc683080376c4e94501d9f79"
 dependencies = [
- "docopt 0.6.4 (git+git://github.com/docopt/docopt.rs#7515c10dcc94a7263d5e062c434b1465167673dd)",
+ "docopt 0.6.5 (git+https://github.com/docopt/docopt.rs#a73d89a8d953a135dc683080376c4e94501d9f79)",
 ]
+
+[[package]]
+name = "lazy_static"
+version = "0.1.0"
+source = "git+https://github.com/Kimundi/lazy-static.rs#62976cb611c5396e11315ae64c9c389576240eb7"
 
 [[package]]
 name = "seq"
