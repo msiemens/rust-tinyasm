@@ -1,5 +1,6 @@
 #![feature(phase, macro_rules, slicing_syntax, while_let, globs)]
 
+extern crate term;
 extern crate test;
 extern crate seq;
 extern crate serialize;
@@ -11,9 +12,10 @@ extern crate docopt;
 #[phase(plugin)] extern crate lazy_static;
 
 
-use docopt::FlagParser;
+use docopt::Docopt;
 
 
+mod util;
 mod assembler;
 mod vm;
 
@@ -30,7 +32,7 @@ Options:
 
 
 fn main() {
-    let args: Args = FlagParser::parse().unwrap_or_else(|e| e.exit());
+    let args: Args = Args::docopt().decode().unwrap_or_else(|e| e.exit());
 
     if args.cmd_asm {
         assembler::main(args)

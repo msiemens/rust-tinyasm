@@ -1,4 +1,8 @@
-use super::instructions::Instructions;
+use std::rc::Rc;
+
+use assembler::instructions::Instructions;
+use util::fatal;
+use super::SharedString;
 
 
 #[deriving(PartialEq, Eq, Show)]
@@ -17,19 +21,22 @@ pub enum Token {
     RBRACKET,
 
     MNEMONIC(Instructions),
-    IDENT(String),
+    IDENT(SharedString),
     INTEGER(u8),
     CHAR(u8),
-    PATH(String),
+    PATH(SharedString),
 
-    EOF
+    EOF,
 
+    PLACEHOLDER
     //UNKNOWN(String)
 }
 
 
 pub struct Lexer<'a> {
     source: &'a str,
+    file: &'a str,
+    len: uint,
     pos: uint,
     curr: Option<char>,
     curr_line: uint
@@ -37,9 +44,11 @@ pub struct Lexer<'a> {
 
 
 impl<'a> Lexer<'a> {
-    pub fn new(source: &str) -> Lexer {
+    pub fn new(source: &'a str, file: &'a str) -> Lexer<'a> {
         Lexer {
             source: source,
+            file: file,
+            len: source.len(),
             pos: 0,
             curr: Some(source.char_at(0)),
             curr_line: 1
@@ -54,8 +63,15 @@ impl<'a> Lexer<'a> {
     }
 
     fn nextch(&self) -> Option<char> {
-        let new_pos = self.pos + 1;
-        if new_pos < self.source.len() {
+        let mut new_pos = self.pos + 1;
+        // When encountering multi-byte UTF-8, we may stop in the middle
+        // of it. Fast forward till we see the next actual char or EOF
+        while !self.source.is_char_boundary(new_pos)
+            && self.pos < self.len {
+            new_pos += 1;
+        }
+
+        if new_pos < self.len {
             Some(self.source.char_at(new_pos))
         } else {
             None
@@ -77,25 +93,31 @@ impl<'a> Lexer<'a> {
                 None => "EOF".into_string()
             };
 
-            panic!("Expected {}, found {}", expect_str, found_str)
+            fatal(format!("Expected `{}`, found `{}`",
+                          expect_str, found_str), self.get_source())
         }
 
         self.bump();
     }
 
-    fn curr_repr(&self) -> String {
+    fn curr_repr(&self) -> SharedString {
         match self.curr {
             Some(c) => {
                 let mut repr = vec![];
                 c.escape_default(|r| repr.push(r));
-                String::from_chars(repr[])
+                Rc::new(String::from_chars(repr[]))
             },
-            None => "EOF".into_string()
+            None => Rc::new("EOF".into_string())
         }
     }
 
+
+    pub fn get_source(&self) -> String {
+        format!("{}:{}", self.file, self.curr_line)
+    }
+
     /// Collect a series of chars starting at the current character
-    fn collect(&mut self, cond: |&char| -> bool) -> String {
+    fn collect(&mut self, cond: |&char| -> bool) -> SharedString {
         let mut chars = vec![];
 
         debug!("start colleting")
@@ -106,11 +128,18 @@ impl<'a> Lexer<'a> {
                 self.bump();
             } else {
                 debug!("colleting finished")
-                break
+                break;
             }
         }
 
-        String::from_chars(chars[])
+        Rc::new(String::from_chars(chars[]))
+    }
+
+    fn eat_all(&mut self, cond: |&char| -> bool) {
+        while let Some(c) = self.curr {
+            if cond(&c) { self.bump(); }
+            else { break; }
+        }
     }
 
     fn tokenize_mnemonic(&mut self) -> Token {
@@ -120,7 +149,8 @@ impl<'a> Lexer<'a> {
 
         let mnemonic = match from_str(mnemonic[]) {
             Some(m) => m,
-            None => panic!("Invalid mnemonic: {}", mnemonic)
+            None => fatal(format!("invalid mnemonic: {}", mnemonic),
+                          self.get_source())
         };
 
         MNEMONIC(mnemonic)
@@ -128,7 +158,9 @@ impl<'a> Lexer<'a> {
 
     fn tokenize_ident(&mut self) -> Token {
         let ident = self.collect(|c| {
-            (c.is_alphabetic() && c.is_lowercase()) || *c == '_'
+            (c.is_alphabetic() && c.is_lowercase())
+                || c.is_digit()
+                || *c == '_'
         });
 
         IDENT(ident)
@@ -139,7 +171,8 @@ impl<'a> Lexer<'a> {
 
         let integer = match from_str(integer[]) {
             Some(m) => m,
-            None => panic!("Invalid integer: {}", integer)
+            None => fatal(format!("invalid integer: {}", integer),
+                          self.get_source())
         };
 
         INTEGER(integer)
@@ -147,7 +180,10 @@ impl<'a> Lexer<'a> {
 
     fn tokenize_char(&mut self) -> Token {
         self.bump();  // '\'' matched, move on
-        let c = self.curr.unwrap_or_else(|| panic!("Expected a char, found EOF"));
+        let c = self.curr.unwrap_or_else(|| {
+            fatal(format!("expected a char, found EOF"),
+                  self.get_source());
+        });
 
         let tok = if c == '\\' {
             // Escaped char, let's take a look on one more char
@@ -156,13 +192,16 @@ impl<'a> Lexer<'a> {
             match self.curr {
                 Some('n') => CHAR(10),
                 Some('\'') => CHAR(39),
-                Some(c) => panic!("Unsupported or invalid escape sequence: \\{}", c),
-                None => panic!("Expected escaped char, found EOF")
+                Some(c) => fatal(format!("unsupported or invalid escape sequence: \\{}", c),
+                                 self.get_source()),
+                None => fatal(format!("expected escaped char, found EOF"),
+                              self.get_source())
             }
         } else if c.is_whitespace() || c.is_alphanumeric() {
             CHAR(c as u8)
         } else {
-            panic!("Invalid character: {}", c)
+            fatal(format!("invalid character: {}", c),
+                  self.get_source())
         };
         self.bump();
 
@@ -219,7 +258,7 @@ impl<'a> Lexer<'a> {
             },
 
             ';' => {
-                self.collect(|c| *c != '\n');
+                self.eat_all(|c| *c != '\n');
                 return None;
             },
             c if c.is_whitespace() => {
@@ -234,7 +273,8 @@ impl<'a> Lexer<'a> {
                 return None;
             },
             c => {
-                panic!("Unknown token: {}", c)
+                fatal(format!("unknown token: {}", c),
+                      self.get_source())
                 // UNKNOWN(format!("{}", c).into_string())
             }
         };
@@ -260,6 +300,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    #[allow(dead_code)]  // Used for tests
     pub fn tokenize(&mut self) -> Vec<Token> {
         let mut tokens = vec![];
 

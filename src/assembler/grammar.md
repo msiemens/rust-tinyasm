@@ -17,19 +17,23 @@
 
     # AST
     programm:   comment | (statement comment?)*
-    statement:  include | label_def | const_def | operation
+    statement:  include | label_def | const_def | operation | macro
 
     include:    hash path
     label_def:  ident colon
-    const_def:  variable eq argument
+    const_def:  constant eq argument
     operation:  mnemonic argument*
     argument:   integer
-                | lbracket ( integer | underscore ) rbracket
-                | variable
+                | address
+                | constant
                 | label
+                | char
+
+    address:    lbracket ( integer | underscore ) rbracket
     label:      colon ident
-    variable:   dollar ident
-    macro:      at ident lparen ( argument ( comma argument )* )? rparen
+    constant:   dollar ident
+    macro:      at ident lparen ( marco_arg ( comma marco_arg )* )? rparen
+    marco_arg:  argument | ident
 
     # Tokens
     hash:       '#'
@@ -44,7 +48,7 @@
     lbracket:   '['
     rbracket:   ']'
     mnemonic:   [A-Z]+
-    ident:      [a-z]+ ( '_' | [a-z] )+
+    ident:      [a-z]+ ( '_' | [a-z] | [0-9]+ )+
     integer:    [0-9]+
     char:       '\'' ( [a-z] | [A-Z] | '\n' ) '\''
     path:       '<' ( [a-z] | [A-Z] | '.' | '/' | '_' | '-' )+ '>'

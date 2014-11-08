@@ -7,13 +7,6 @@ use self::instructions::{INSTRUCTIONS, ModifyMemory, Jump, Halt, Continue};
 mod instructions;
 
 
-macro_rules! items (
-    ( $count:expr, $len:expr ) => (
-        box $i as Box<Instruction>
-    )
-)
-
-
 pub fn main(args: Args) {
     let source = match File::open(&Path::new(args.arg_input)).read_to_end() {
         Ok(v)  => v,
@@ -34,7 +27,7 @@ fn run(source: &[u8]) {
         debug!("pc: {:u}", pc);
 
         let opcode = source[pc];                        debug!("opcode: {:#04X}", opcode);
-        let ref instruction = INSTRUCTIONS.find(&opcode).unwrap();
+        let ref instruction = INSTRUCTIONS.get(&opcode).unwrap();
         let argc = instruction.argc();                  debug!("argc: {}", argc);
         if pc + 1 + argc >= source.len() {
             panic!("Reached end of input without HALT!")

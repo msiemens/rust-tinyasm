@@ -2,22 +2,22 @@
 name = "tiny-asm"
 version = "0.0.1"
 dependencies = [
- "docopt_macros 0.6.5 (git+https://github.com/docopt/docopt.rs#a73d89a8d953a135dc683080376c4e94501d9f79)",
+ "docopt_macros 0.6.5 (git+https://github.com/docopt/docopt.rs#0b184b15ed5ea7e3c180b088e8f99baa4427f989)",
  "lazy_static 0.1.0 (git+https://github.com/Kimundi/lazy-static.rs#62976cb611c5396e11315ae64c9c389576240eb7)",
- "seq 0.0.0 (git+https://github.com/japaric/seq.rs.git#a1ec03a2a4796d6ebde65ef478a34e429be0b3ff)",
+ "seq 0.0.0 (git+https://github.com/japaric/seq.rs.git#ac89139b341536c643bd18b445b865b8bffa02e0)",
 ]
 
 [[package]]
 name = "docopt"
-version = "0.6.5"
-source = "git+https://github.com/docopt/docopt.rs#a73d89a8d953a135dc683080376c4e94501d9f79"
+version = "0.6.8"
+source = "git+https://github.com/docopt/docopt.rs#0b184b15ed5ea7e3c180b088e8f99baa4427f989"
 
 [[package]]
 name = "docopt_macros"
 version = "0.6.5"
-source = "git+https://github.com/docopt/docopt.rs#a73d89a8d953a135dc683080376c4e94501d9f79"
+source = "git+https://github.com/docopt/docopt.rs#0b184b15ed5ea7e3c180b088e8f99baa4427f989"
 dependencies = [
- "docopt 0.6.5 (git+https://github.com/docopt/docopt.rs#a73d89a8d953a135dc683080376c4e94501d9f79)",
+ "docopt 0.6.8 (git+https://github.com/docopt/docopt.rs#0b184b15ed5ea7e3c180b088e8f99baa4427f989)",
 ]
 
 [[package]]
@@ -28,13 +28,13 @@ source = "git+https://github.com/Kimundi/lazy-static.rs#62976cb611c5396e11315ae6
 [[package]]
 name = "seq"
 version = "0.0.0"
-source = "git+https://github.com/japaric/seq.rs.git#a1ec03a2a4796d6ebde65ef478a34e429be0b3ff"
+source = "git+https://github.com/japaric/seq.rs.git#ac89139b341536c643bd18b445b865b8bffa02e0"
 dependencies = [
- "seq_macros 0.0.0 (git+https://github.com/japaric/seq.rs.git#a1ec03a2a4796d6ebde65ef478a34e429be0b3ff)",
+ "seq_macros 0.0.0 (git+https://github.com/japaric/seq.rs.git#ac89139b341536c643bd18b445b865b8bffa02e0)",
 ]
 
 [[package]]
 name = "seq_macros"
 version = "0.0.0"
-source = "git+https://github.com/japaric/seq.rs.git#a1ec03a2a4796d6ebde65ef478a34e429be0b3ff"
+source = "git+https://github.com/japaric/seq.rs.git#ac89139b341536c643bd18b445b865b8bffa02e0"
 

@@ -4,7 +4,7 @@ use std::rand::distributions::Range as RandRange;
 use std::rand;
 
 
-// TODO: Implement Show trait
+// TODO: Implement Show trait?
 pub trait Instruction {
     fn execute(&self, &[u8], &[u8]) -> StateChange;
     fn argc(&self) -> uint;
@@ -49,6 +49,7 @@ macro_rules! make_instruction(
         }
 
         impl $name {
+            #[inline]
             fn get_args(&self, args: &[u8], mem: &[u8]) -> Vec<u8> {
                 self.arg_types.iter()
                     .zip(args.iter())
