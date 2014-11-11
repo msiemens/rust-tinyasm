@@ -1,7 +1,6 @@
-use std::iter::FromIterator;
 use std::rc::Rc;
 
-use assembler::{SharedString, SourceLocation};
+use assembler::{SharedString, SourceLocation, dummy_source};
 use assembler::instructions::Instructions;
 use assembler::util::fatal;
 
@@ -36,7 +35,6 @@ pub enum Token {
 
 pub trait Lexer {
     fn get_source(&self) -> SourceLocation;
-    fn is_eof(&self) -> bool;
     fn next_token(&mut self) -> Token;
     fn tokenize(&mut self) -> Vec<Token>;
 }
@@ -61,6 +59,10 @@ impl<'a> FileLexer<'a> {
             curr: Some(source.char_at(0)),
             curr_line: 1
         }
+    }
+
+    fn is_eof(&self) -> bool {
+        self.curr.is_none()
     }
 
     fn bump(&mut self) {
@@ -295,10 +297,6 @@ impl<'a> Lexer for FileLexer<'a> {
         }
     }
 
-    fn is_eof(&self) -> bool {
-        self.curr.is_none()
-    }
-
     fn next_token(&mut self) -> Token {
         if self.is_eof() {
             EOF
@@ -335,18 +333,16 @@ impl<'a> Lexer for FileLexer<'a> {
 
 impl Lexer for Vec<Token> {
     fn get_source(&self) -> SourceLocation {
-        SourceLocation {
-            filename: "<input>".into_string(),
-            lineno: 0
-        }
-    }
-
-    fn is_eof(&self) -> bool {
-        self.is_empty()
+        dummy_source()
     }
 
     fn next_token(&mut self) -> Token {
-        self.remove(0).unwrap_or_else(|| return EOF)
+        println!("v: {}", self);
+
+        match self.remove(0) {
+            Some(tok) => tok,
+            None => EOF
+        }
     }
 
     fn tokenize(&mut self) -> Vec<Token> {
@@ -362,7 +358,6 @@ impl Lexer for Vec<Token> {
 mod tests {
     use std::rc::Rc;
 
-    use super::super::instructions::INSTRUCTIONS;
     use super::*;
 
     // TODO: Move to better place
@@ -372,56 +367,62 @@ mod tests {
         )
     )
 
+    macro_rules! lex(
+        ($src:expr) => (
+            FileLexer::new($src, "<test>").tokenize()
+        )
+    )
+
     #[test]
     fn test_mnemonic() {
-        assert_eq!(FileLexer::new("MOV", "<test>").tokenize(),
+        assert_eq!(lex!("MOV"),
                    vec![MNEMONIC(from_str("MOV").unwrap())]);
     }
 
     #[test]
     fn test_ident() {
-        assert_eq!(FileLexer::new("abc", "<test>").tokenize(),
+        assert_eq!(lex!("abc"),
                    vec![IDENT(str!("abc"))]);
     }
 
     #[test]
     fn test_digit() {
-        assert_eq!(FileLexer::new("128", "<test>").tokenize(),
+        assert_eq!(lex!("128"),
                    vec![INTEGER(128)]);
     }
 
     #[test]
     fn test_char() {
-        assert_eq!(FileLexer::new("'a'", "<test>").tokenize(),
+        assert_eq!(lex!("'a'"),
                    vec![CHAR('a' as u8)]);
-        assert_eq!(FileLexer::new("' '", "<test>").tokenize(),
+        assert_eq!(lex!("' '"),
                    vec![CHAR(' ' as u8)]);
-        assert_eq!(FileLexer::new("'\n'", "<test>").tokenize(),
+        assert_eq!(lex!("'\n'"),
                    vec![CHAR('\n' as u8)]);
-        assert_eq!(FileLexer::new("'\\\''", "<test>").tokenize(),
+        assert_eq!(lex!("'\\\''"),
                    vec![CHAR('\'' as u8)]);
     }
 
     #[test]
     fn test_path() {
-        assert_eq!(FileLexer::new("<asd>", "<test>").tokenize(),
+        assert_eq!(lex!("<asd>"),
                    vec![PATH(str!("asd"))]);
     }
 
     #[test]
     fn test_comment() {
-        assert_eq!(FileLexer::new("; asd", "<test>").tokenize(),
+        assert_eq!(lex!("; asd"),
                    vec![]);
-        assert_eq!(FileLexer::new("; asd\nMOV ;asd\nMOV", "<test>").tokenize(),
+        assert_eq!(lex!("; asd\nMOV ;asd\nMOV"),
                    vec![MNEMONIC(from_str("MOV").unwrap()),
                         MNEMONIC(from_str("MOV").unwrap())]);
     }
 
     #[test]
     fn test_whitespace() {
-        assert_eq!(FileLexer::new("\n\n\n\n     \n\t\n", "<test>").tokenize(),
+        assert_eq!(lex!("\n\n\n\n     \n\t\n"),
                    vec![]);
-        assert_eq!(FileLexer::new("      MOV        \n\n MOV", "<test>").tokenize(),
+        assert_eq!(lex!("      MOV        \n\n MOV"),
                    vec![MNEMONIC(from_str("MOV").unwrap()),
                         MNEMONIC(from_str("MOV").unwrap())]);
     }

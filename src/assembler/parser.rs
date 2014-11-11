@@ -13,6 +13,7 @@ pub struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
+    #[cfg(not(test))]
     pub fn new(source: &'a str, file: &'a str) -> Parser<'a> {
         Parser::with_lexer(box FileLexer::new(source, file))
     }
@@ -65,10 +66,10 @@ impl<'a> Parser<'a> {
     pub fn parse(&mut self) -> Vec<Statement> {
         let mut ast = vec![];
 
-        while !self.lexer.is_eof() {
+        while self.token != EOF {
             ast.push(self.parse_statement());
-            debug!("so far: {}", ast);
         }
+
 
         ast
     }
@@ -213,8 +214,6 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_statement(&mut self) -> Statement {
-        println!("self.token: {}", self.token);
-
         match self.token {
             HASH => self.parse_include(),
             DOLLAR => self.parse_constant_def(),
@@ -232,12 +231,22 @@ mod tests {
     use std::rc::Rc;
 
     use super::*;
+    use assembler::dummy_source;
     use assembler::lexer::*;
     use assembler::ast::*;
 
     macro_rules! str(
         ($s:expr) => (
             Rc::new($s.into_string())
+        )
+    )
+
+    macro_rules! parse(
+        ($src:expr with $f:ident) => (
+            {
+                let mut p = Parser::with_lexer(box $src as Box<Lexer>);
+                p.$f()
+            }
         )
     )
 
@@ -248,77 +257,101 @@ mod tests {
     )
 
     #[test]
-    fn test_include() {
-        let mut p = parser!(vec![HASH, IDENT(str!("import")), PATH(str!("as/d"))]);
+    fn test_statements() {
         assert_eq!(
-            p.parse_statement(),
+            parse!(vec![HASH, IDENT(str!("import")), PATH(str!("as/d")),
+                        MNEMONIC(from_str("HALT").unwrap())]
+                   with parse),
+            vec![
+                Statement::new(
+                    StatementInclude(
+                        Path(str!("as/d"))
+                    ),
+                    dummy_source()
+                ),
+                Statement::new(
+                    StatementOperation(
+                        Mnemonic(from_str("HALT").unwrap()),
+                        vec![]
+                    ),
+                    dummy_source()
+                )
+            ]
+        )
+    }
+
+    #[test]
+    fn test_include() {
+        assert_eq!(
+            parse!(vec![HASH, IDENT(str!("import")), PATH(str!("as/d"))]
+                   with parse_statement),
             Statement::new(
                 StatementInclude(
                     Path(str!("as/d"))
                 ),
-                p.lexer.get_source()
+                dummy_source()
             )
         )
     }
 
     #[test]
     fn test_label_def() {
-        let mut p = parser!(vec![IDENT(str!("lbl")), COLON]);
         assert_eq!(
-            p.parse_statement(),
+            parse!(vec![IDENT(str!("lbl")), COLON]
+                   with parse_statement),
             Statement::new(
                 StatementLabel(
                     Ident(str!("lbl"))
                 ),
-                p.lexer.get_source()
+                dummy_source()
             )
         )
     }
 
     #[test]
     fn test_const_def() {
-        let mut p = parser!(vec![DOLLAR, IDENT(str!("c")), EQ, INTEGER(0)]);
         assert_eq!(
-            p.parse_statement(),
+            parse!(vec![DOLLAR, IDENT(str!("c")), EQ, INTEGER(0)]
+                   with parse_statement),
             Statement::new(
                 StatementConst(
                     Ident(str!("c")),
                     Argument::new(
                         ArgumentLiteral(0),
-                        p.lexer.get_source()
+                        dummy_source()
                     )
                 ),
-                p.lexer.get_source()
+                dummy_source()
             )
         )
     }
 
     #[test]
     fn test_operation() {
-        let mut p = parser!(vec![MNEMONIC(from_str("MOV").unwrap()), INTEGER(0)]);
         assert_eq!(
-            p.parse_statement(),
+            parse!(vec![MNEMONIC(from_str("MOV").unwrap()), INTEGER(0)]
+                   with parse_statement),
             Statement::new(
                 StatementOperation(
                     Mnemonic(from_str("MOV").unwrap()),
                     vec![
                         Argument::new(
                             ArgumentLiteral(0),
-                            p.lexer.get_source()
+                            dummy_source()
                         )
                     ]
                 ),
-                p.lexer.get_source()
+                dummy_source()
             )
         )
     }
 
     #[test]
     fn test_macro() {
-        let mut p = parser!(vec![AT, IDENT(str!("macro")), LPAREN, INTEGER(0), COMMA,
-                                 INTEGER(0), RPAREN]);
         assert_eq!(
-            p.parse_statement(),
+            parse!(vec![AT, IDENT(str!("macro")),
+                        LPAREN, INTEGER(0), COMMA, INTEGER(0), RPAREN]
+                   with parse_statement),
             Statement::new(
                 StatementMacro(
                     Ident(str!("macro")),
@@ -327,130 +360,130 @@ mod tests {
                             MacroArgArgument(
                                 Argument::new(
                                     ArgumentLiteral(0),
-                                    p.lexer.get_source()
+                                    dummy_source()
                                 )
                             ),
-                            p.lexer.get_source()
+                            dummy_source()
                         ),
                         MacroArgument::new(
                             MacroArgArgument(
                                 Argument::new(
                                     ArgumentLiteral(0),
-                                    p.lexer.get_source()
+                                    dummy_source()
                                 )
                             ),
-                            p.lexer.get_source()
+                            dummy_source()
                         )
                     ]
                 ),
-                p.lexer.get_source()
+                dummy_source()
             )
         )
     }
 
     #[test]
     fn test_literal() {
-        let mut p = parser!(vec![INTEGER(0)]);
         assert_eq!(
-            p.parse_argument(),
+            parse!(vec![INTEGER(0)]
+                   with parse_argument),
             Argument::new(
                 ArgumentLiteral(0),
-                p.lexer.get_source()
+                dummy_source()
             )
         )
     }
 
     #[test]
     fn test_address() {
-        let mut p = parser!(vec![LBRACKET, INTEGER(0), RBRACKET]);
         assert_eq!(
-            p.parse_argument(),
+            parse!(vec![LBRACKET, INTEGER(0), RBRACKET]
+                   with parse_argument),
             Argument::new(
                 ArgumentAddress(Some(0)),
-                p.lexer.get_source()
+                dummy_source()
             )
         )
     }
 
     #[test]
     fn test_address_auto() {
-        let mut p = parser!(vec![LBRACKET, UNDERSCORE, RBRACKET]);
         assert_eq!(
-            p.parse_argument(),
+            parse!(vec![LBRACKET, UNDERSCORE, RBRACKET]
+                   with parse_argument),
             Argument::new(
                 ArgumentAddress(None),
-                p.lexer.get_source()
+                dummy_source()
             )
         )
     }
 
     #[test]
     fn test_const() {
-        let mut p = parser!(vec![DOLLAR, IDENT(str!("asd"))]);
         assert_eq!(
-            p.parse_argument(),
+            parse!(vec![DOLLAR, IDENT(str!("asd"))]
+                   with parse_argument),
             Argument::new(
                 ArgumentConst(
                     Ident(str!("asd"))
                 ),
-                p.lexer.get_source()
+                dummy_source()
             )
         )
     }
 
     #[test]
     fn test_label() {
-        let mut p = parser!(vec![COLON, IDENT(str!("asd"))]);
         assert_eq!(
-            p.parse_argument(),
+            parse!(vec![COLON, IDENT(str!("asd"))]
+                   with parse_argument),
             Argument::new(
                 ArgumentLabel(
                     Ident(str!("asd"))
                 ),
-                p.lexer.get_source()
+                dummy_source()
             )
         )
     }
 
     #[test]
     fn test_char() {
-        let mut p = parser!(vec![CHAR(0)]);
         assert_eq!(
-            p.parse_argument(),
+            parse!(vec![CHAR(0)]
+                   with parse_argument),
             Argument::new(
                 ArgumentChar(0),
-                p.lexer.get_source()
+                dummy_source()
             )
         )
     }
 
     #[test]
     fn test_macro_arg_arg() {
-        let mut p = parser!(vec![INTEGER(0)]);
         assert_eq!(
-            p.parse_macro_argument(),
+            parse!(vec![INTEGER(0)]
+                   with parse_macro_argument),
             MacroArgument::new(
                 MacroArgArgument(
                     Argument::new(
                         ArgumentLiteral(0),
-                        p.lexer.get_source()
+                        dummy_source()
                     )
                 ),
-                p.lexer.get_source()
+                dummy_source()
             )
         )
     }
 
     #[test]
     fn test_macro_arg_ident() {
-        let mut p = parser!(vec![IDENT(str!("asd"))]);
         assert_eq!(
-            p.parse_macro_argument(),
+            parse!(vec![IDENT(str!("asd"))]
+                   with parse_macro_argument),
             MacroArgument::new(
                 MacroArgIdent(
                     Ident(str!("asd"))
                 ),
-                p.lexer.get_source()
+                dummy_source()
             )
         )
     }

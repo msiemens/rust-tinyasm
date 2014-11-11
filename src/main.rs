@@ -16,7 +16,7 @@ use docopt::Docopt;
 
 
 mod assembler;
-mod vm;
+#[cfg(not(test))] mod vm;  // TODO: Tests
 
 
 docopt!(Args deriving Show, "
@@ -30,6 +30,7 @@ Options:
 ")
 
 
+#[cfg(not(test))]
 fn main() {
     let args: Args = Args::docopt().decode().unwrap_or_else(|e| e.exit());
 

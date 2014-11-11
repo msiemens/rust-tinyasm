@@ -1,11 +1,13 @@
+// TODO: Code cleanup (str!, ...)
 // TODO: Implement code generation
 // TODO: Framework for AST processors
 // TODO: Implement AST processors
 
 use std::fmt::{Show, Formatter, FormatError};
-use std::io::File;
+#[cfg(not(test))] use std::io::File;
 use std::rc::Rc;
 
+#[cfg(not(test))]
 use super::Args;
 
 
@@ -30,8 +32,16 @@ impl Show for SourceLocation {
     }
 }
 
+pub fn dummy_source() -> SourceLocation {
+    SourceLocation {
+        filename: "<input>".into_string(),
+        lineno: 0
+    }
+}
 
 
+
+#[cfg(not(test))]
 pub fn main(args: Args) {
     let mut assembler = Assembler {
         input: Path::new(args.arg_input),
@@ -41,10 +51,12 @@ pub fn main(args: Args) {
 }
 
 
+#[cfg(not(test))]
 struct Assembler<'a> {
     input: Path,
 }
 
+#[cfg(not(test))]
 impl<'a> Assembler<'a> {
     fn run(&mut self) {
         // Read source file
