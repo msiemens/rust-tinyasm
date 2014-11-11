@@ -1,18 +1,21 @@
 use std::fmt;
 
 use assembler::instructions::Instructions;
-use super::SharedString;
+use super::{SharedString, SourceLocation};
+
 
 macro_rules! define(
     ( $name:ident -> $inner:ident : $( $variants:ident ( $( $arg:ty ),* ) ),* ) => {
         pub struct $name {
-            pub node: $inner
+            pub node: $inner,
+            pub location: SourceLocation
         }
 
         impl $name {
-            pub fn new(stmt: $inner) -> $name {
+            pub fn new(stmt: $inner, location: SourceLocation) -> $name {
                 $name {
-                    node: stmt
+                    node: stmt,
+                    location: location
                 }
             }
         }

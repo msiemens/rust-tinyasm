@@ -1,7 +1,9 @@
 use term;
 use std;
 
-pub fn fatal(msg: String, source: String) -> ! {
+use assembler::SourceLocation;
+
+pub fn fatal(msg: String, source: SourceLocation) -> ! {
     let mut t = term::stdout().unwrap();
 
     t.fg(term::color::RED).unwrap();

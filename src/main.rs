@@ -15,7 +15,6 @@ extern crate docopt;
 use docopt::Docopt;
 
 
-mod util;
 mod assembler;
 mod vm;
 

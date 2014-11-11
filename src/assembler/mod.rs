@@ -3,6 +3,7 @@
 // TODO: Framework for AST processors
 // TODO: Implement AST processors
 
+use std::fmt::{Show, Formatter, FormatError};
 use std::io::File;
 use std::rc::Rc;
 
@@ -13,9 +14,22 @@ mod instructions;
 mod ast;
 mod lexer;
 mod parser;
+mod util;
 
 
 type SharedString = Rc<String>;
+
+pub struct SourceLocation {
+    pub filename: String,
+    pub lineno: uint
+}
+
+impl Show for SourceLocation {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+        write!(f, "{}:{}", self.filename, self.lineno)
+    }
+}
+
 
 
 pub fn main(args: Args) {

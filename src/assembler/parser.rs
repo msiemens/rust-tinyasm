@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use assembler::ast::*;
 use assembler::lexer::*;
-use util::fatal;
+use assembler::util::fatal;
 
 
 pub struct Parser<'a> {
@@ -132,14 +132,16 @@ impl<'a> Parser<'a> {
             _ => self.unexpected_token(&self.token)
         };
 
-        Argument::new(arg)
+        Argument::new(arg, self.lexer.get_source())
     }
 
     fn parse_macro_argument(&mut self) -> MacroArgument {
         if self.token_is_argument() {
-            MacroArgument::new(MacroArgArgument(self.parse_argument()))
+            MacroArgument::new(MacroArgArgument(self.parse_argument()),
+                               self.lexer.get_source())
         } else {
-            MacroArgument::new(MacroArgIdent(self.parse_ident()))
+            MacroArgument::new(MacroArgIdent(self.parse_ident()),
+                               self.lexer.get_source())
         }
     }
 
@@ -150,14 +152,14 @@ impl<'a> Parser<'a> {
         self.expect(&IDENT(Rc::new("import".into_string())));
         let path = self.parse_path();
 
-        Statement::new(StatementInclude(path))
+        Statement::new(StatementInclude(path), self.lexer.get_source())
     }
 
     fn parse_label_def(&mut self) -> Statement {
         let label = self.parse_ident();
         self.expect(&COLON);
 
-        Statement::new(StatementLabel(label))
+        Statement::new(StatementLabel(label), self.lexer.get_source())
     }
 
     fn parse_constant_def(&mut self) -> Statement {
@@ -165,7 +167,7 @@ impl<'a> Parser<'a> {
         self.expect(&EQ);
         let value = self.parse_argument();
 
-        Statement::new(StatementConst(name, value))
+        Statement::new(StatementConst(name, value), self.lexer.get_source())
     }
 
     fn parse_operation(&mut self) -> Statement {
@@ -180,7 +182,7 @@ impl<'a> Parser<'a> {
             args.push(self.parse_argument());
         }
 
-        Statement::new(StatementOperation(mn, args))
+        Statement::new(StatementOperation(mn, args), self.lexer.get_source())
     }
 
     fn parse_macro(&mut self) -> Statement {
@@ -199,7 +201,7 @@ impl<'a> Parser<'a> {
         }
         self.expect(&RPAREN);
 
-        Statement::new(StatementMacro(name, args))
+        Statement::new(StatementMacro(name, args), self.lexer.get_source())
     }
 
     fn parse_statement(&mut self) -> Statement {

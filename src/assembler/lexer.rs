@@ -1,8 +1,8 @@
 use std::rc::Rc;
 
+use assembler::{SharedString, SourceLocation};
 use assembler::instructions::Instructions;
-use util::fatal;
-use super::SharedString;
+use assembler::util::fatal;
 
 
 #[deriving(PartialEq, Eq, Show)]
@@ -112,8 +112,11 @@ impl<'a> Lexer<'a> {
     }
 
 
-    pub fn get_source(&self) -> String {
-        format!("{}:{}", self.file, self.curr_line)
+    pub fn get_source(&self) -> SourceLocation {
+        SourceLocation {
+            filename: self.file.into_string(),
+            lineno: self.curr_line
+        }
     }
 
     /// Collect a series of chars starting at the current character
