@@ -6,6 +6,7 @@ use super::{SharedString, SourceLocation};
 
 macro_rules! define(
     ( $name:ident -> $inner:ident : $( $variants:ident ( $( $arg:ty ),* ) ),* ) => {
+        #[deriving(PartialEq, Eq)]
         pub struct $name {
             pub node: $inner,
             pub location: SourceLocation
@@ -26,7 +27,7 @@ macro_rules! define(
             }
         }
 
-        #[deriving(Show)]
+        #[deriving(PartialEq, Eq, Show)]
         pub enum $inner {
             $( $variants ( $( $arg ),* ) ),*
         }
@@ -59,11 +60,11 @@ MacroArgument -> MacroArgument_:
 )
 
 
-#[deriving(Show)]
+#[deriving(PartialEq, Eq, Show)]
 pub struct Ident(pub SharedString);
 
-#[deriving(Show)]
+#[deriving(PartialEq, Eq, Show)]
 pub struct Mnemonic(pub Instructions);
 
-#[deriving(Show)]
+#[deriving(PartialEq, Eq, Show)]
 pub struct Path(pub SharedString);

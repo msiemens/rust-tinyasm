@@ -1,4 +1,3 @@
-// TODO: Parser tests
 // TODO: Implement code generation
 // TODO: Framework for AST processors
 // TODO: Implement AST processors
@@ -19,6 +18,7 @@ mod util;
 
 type SharedString = Rc<String>;
 
+#[deriving(PartialEq, Eq)]
 pub struct SourceLocation {
     pub filename: String,
     pub lineno: uint

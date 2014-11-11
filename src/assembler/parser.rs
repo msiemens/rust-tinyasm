@@ -9,12 +9,16 @@ use assembler::util::fatal;
 pub struct Parser<'a> {
     token: Token,
     lookahead: Token,
-    lexer: Lexer<'a>
+    lexer: Box<Lexer + 'a>
 }
 
 impl<'a> Parser<'a> {
     pub fn new(source: &'a str, file: &'a str) -> Parser<'a> {
-        let mut lx = Lexer::new(source, file);
+        Parser::with_lexer(box FileLexer::new(source, file))
+    }
+
+    pub fn with_lexer(lx: Box<Lexer + 'a>) -> Parser<'a> {
+        let mut lx = lx;
 
         Parser {
             token: lx.next_token(),
@@ -23,9 +27,13 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn unexpected_token(&self, tok: &Token) -> ! {
-        fatal(format!("unexpected token: `{}`", tok),
-              self.lexer.get_source());
+    fn unexpected_token(&self, tok: &Token, expected: Option<&'static str>) -> ! {
+        match expected {
+            Some(ex) => fatal(format!("unexpected token: `{}`, expected {}", tok, ex),
+                              self.lexer.get_source()),
+            None => fatal(format!("unexpected token: `{}`", tok),
+                          self.lexer.get_source())
+        }
     }
 
     fn bump(&mut self) {
@@ -79,7 +87,7 @@ impl<'a> Parser<'a> {
     fn parse_ident(&mut self) -> Ident {
         let ident = match self.token {
             IDENT(ref id) => Ident(id.clone()),
-            _ => self.unexpected_token(&self.token)
+            _ => self.unexpected_token(&self.token, Some("a identifier"))
         };
         self.bump();
 
@@ -89,7 +97,7 @@ impl<'a> Parser<'a> {
     fn parse_path(&mut self) -> Path {
         let path = match self.token {
             PATH(ref p) => Path(p.clone()),
-            _ => self.unexpected_token(&self.token)
+            _ => self.unexpected_token(&self.token, Some("a path"))
         };
         self.bump();
 
@@ -103,7 +111,7 @@ impl<'a> Parser<'a> {
         let value = match self.token {
             INTEGER(i) => Some(i),
             UNDERSCORE => None,
-            _ => self.unexpected_token(&self.token)
+            _ => self.unexpected_token(&self.token, Some("an address"))
         };
         self.bump();
         self.expect(&RBRACKET);
@@ -129,7 +137,7 @@ impl<'a> Parser<'a> {
             LBRACKET => ArgumentAddress(self.parse_address()),
             DOLLAR => ArgumentConst(self.parse_constant()),
             COLON => ArgumentLabel(self.parse_label()),
-            _ => self.unexpected_token(&self.token)
+            _ => self.unexpected_token(&self.token, Some("an argument"))
         };
 
         Argument::new(arg, self.lexer.get_source())
@@ -173,7 +181,7 @@ impl<'a> Parser<'a> {
     fn parse_operation(&mut self) -> Statement {
         let mn = match self.token {
             MNEMONIC(mn) => Mnemonic(mn),
-            _ => self.unexpected_token(&self.token)
+            _ => self.unexpected_token(&self.token, Some("a mnemonic"))
         };
         self.bump();
 
@@ -205,6 +213,8 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_statement(&mut self) -> Statement {
+        println!("self.token: {}", self.token);
+
         match self.token {
             HASH => self.parse_include(),
             DOLLAR => self.parse_constant_def(),
@@ -212,7 +222,236 @@ impl<'a> Parser<'a> {
             MNEMONIC(_) => self.parse_operation(),
             AT => self.parse_macro(),
 
-            ref tok => self.unexpected_token(tok)
+            ref tok => self.unexpected_token(tok, Some("a statement"))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::rc::Rc;
+
+    use super::*;
+    use assembler::lexer::*;
+    use assembler::ast::*;
+
+    macro_rules! str(
+        ($s:expr) => (
+            Rc::new($s.into_string())
+        )
+    )
+
+    macro_rules! parser(
+        ($src:expr) => (
+            Parser::with_lexer(box $src as Box<Lexer>)
+        )
+    )
+
+    #[test]
+    fn test_include() {
+        let mut p = parser!(vec![HASH, IDENT(str!("import")), PATH(str!("as/d"))]);
+        assert_eq!(
+            p.parse_statement(),
+            Statement::new(
+                StatementInclude(
+                    Path(str!("as/d"))
+                ),
+                p.lexer.get_source()
+            )
+        )
+    }
+
+    #[test]
+    fn test_label_def() {
+        let mut p = parser!(vec![IDENT(str!("lbl")), COLON]);
+        assert_eq!(
+            p.parse_statement(),
+            Statement::new(
+                StatementLabel(
+                    Ident(str!("lbl"))
+                ),
+                p.lexer.get_source()
+            )
+        )
+    }
+
+    #[test]
+    fn test_const_def() {
+        let mut p = parser!(vec![DOLLAR, IDENT(str!("c")), EQ, INTEGER(0)]);
+        assert_eq!(
+            p.parse_statement(),
+            Statement::new(
+                StatementConst(
+                    Ident(str!("c")),
+                    Argument::new(
+                        ArgumentLiteral(0),
+                        p.lexer.get_source()
+                    )
+                ),
+                p.lexer.get_source()
+            )
+        )
+    }
+
+    #[test]
+    fn test_operation() {
+        let mut p = parser!(vec![MNEMONIC(from_str("MOV").unwrap()), INTEGER(0)]);
+        assert_eq!(
+            p.parse_statement(),
+            Statement::new(
+                StatementOperation(
+                    Mnemonic(from_str("MOV").unwrap()),
+                    vec![
+                        Argument::new(
+                            ArgumentLiteral(0),
+                            p.lexer.get_source()
+                        )
+                    ]
+                ),
+                p.lexer.get_source()
+            )
+        )
+    }
+
+    #[test]
+    fn test_macro() {
+        let mut p = parser!(vec![AT, IDENT(str!("macro")), LPAREN, INTEGER(0), COMMA,
+                                 INTEGER(0), RPAREN]);
+        assert_eq!(
+            p.parse_statement(),
+            Statement::new(
+                StatementMacro(
+                    Ident(str!("macro")),
+                    vec![
+                        MacroArgument::new(
+                            MacroArgArgument(
+                                Argument::new(
+                                    ArgumentLiteral(0),
+                                    p.lexer.get_source()
+                                )
+                            ),
+                            p.lexer.get_source()
+                        ),
+                        MacroArgument::new(
+                            MacroArgArgument(
+                                Argument::new(
+                                    ArgumentLiteral(0),
+                                    p.lexer.get_source()
+                                )
+                            ),
+                            p.lexer.get_source()
+                        )
+                    ]
+                ),
+                p.lexer.get_source()
+            )
+        )
+    }
+
+    #[test]
+    fn test_literal() {
+        let mut p = parser!(vec![INTEGER(0)]);
+        assert_eq!(
+            p.parse_argument(),
+            Argument::new(
+                ArgumentLiteral(0),
+                p.lexer.get_source()
+            )
+        )
+    }
+
+    #[test]
+    fn test_address() {
+        let mut p = parser!(vec![LBRACKET, INTEGER(0), RBRACKET]);
+        assert_eq!(
+            p.parse_argument(),
+            Argument::new(
+                ArgumentAddress(Some(0)),
+                p.lexer.get_source()
+            )
+        )
+    }
+
+    #[test]
+    fn test_address_auto() {
+        let mut p = parser!(vec![LBRACKET, UNDERSCORE, RBRACKET]);
+        assert_eq!(
+            p.parse_argument(),
+            Argument::new(
+                ArgumentAddress(None),
+                p.lexer.get_source()
+            )
+        )
+    }
+
+    #[test]
+    fn test_const() {
+        let mut p = parser!(vec![DOLLAR, IDENT(str!("asd"))]);
+        assert_eq!(
+            p.parse_argument(),
+            Argument::new(
+                ArgumentConst(
+                    Ident(str!("asd"))
+                ),
+                p.lexer.get_source()
+            )
+        )
+    }
+
+    #[test]
+    fn test_label() {
+        let mut p = parser!(vec![COLON, IDENT(str!("asd"))]);
+        assert_eq!(
+            p.parse_argument(),
+            Argument::new(
+                ArgumentLabel(
+                    Ident(str!("asd"))
+                ),
+                p.lexer.get_source()
+            )
+        )
+    }
+
+    #[test]
+    fn test_char() {
+        let mut p = parser!(vec![CHAR(0)]);
+        assert_eq!(
+            p.parse_argument(),
+            Argument::new(
+                ArgumentChar(0),
+                p.lexer.get_source()
+            )
+        )
+    }
+
+    #[test]
+    fn test_macro_arg_arg() {
+        let mut p = parser!(vec![INTEGER(0)]);
+        assert_eq!(
+            p.parse_macro_argument(),
+            MacroArgument::new(
+                MacroArgArgument(
+                    Argument::new(
+                        ArgumentLiteral(0),
+                        p.lexer.get_source()
+                    )
+                ),
+                p.lexer.get_source()
+            )
+        )
+    }
+
+    #[test]
+    fn test_macro_arg_ident() {
+        let mut p = parser!(vec![IDENT(str!("asd"))]);
+        assert_eq!(
+            p.parse_macro_argument(),
+            MacroArgument::new(
+                MacroArgIdent(
+                    Ident(str!("asd"))
+                ),
+                p.lexer.get_source()
+            )
+        )
     }
 }

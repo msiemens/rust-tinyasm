@@ -1,3 +1,4 @@
+use std::iter::FromIterator;
 use std::rc::Rc;
 
 use assembler::{SharedString, SourceLocation};
@@ -5,7 +6,7 @@ use assembler::instructions::Instructions;
 use assembler::util::fatal;
 
 
-#[deriving(PartialEq, Eq, Show)]
+#[deriving(Clone, PartialEq, Eq, Show)]
 pub enum Token {
     HASH,
     COLON,
@@ -33,7 +34,15 @@ pub enum Token {
 }
 
 
-pub struct Lexer<'a> {
+pub trait Lexer {
+    fn get_source(&self) -> SourceLocation;
+    fn is_eof(&self) -> bool;
+    fn next_token(&mut self) -> Token;
+    fn tokenize(&mut self) -> Vec<Token>;
+}
+
+
+pub struct FileLexer<'a> {
     source: &'a str,
     file: &'a str,
     len: uint,
@@ -42,10 +51,9 @@ pub struct Lexer<'a> {
     curr_line: uint
 }
 
-
-impl<'a> Lexer<'a> {
-    pub fn new(source: &'a str, file: &'a str) -> Lexer<'a> {
-        Lexer {
+impl<'a> FileLexer<'a> {
+    pub fn new(source: &'a str, file: &'a str) -> FileLexer<'a> {
+        FileLexer {
             source: source,
             file: file,
             len: source.len(),
@@ -111,13 +119,6 @@ impl<'a> Lexer<'a> {
         }
     }
 
-
-    pub fn get_source(&self) -> SourceLocation {
-        SourceLocation {
-            filename: self.file.into_string(),
-            lineno: self.curr_line
-        }
-    }
 
     /// Collect a series of chars starting at the current character
     fn collect(&mut self, cond: |&char| -> bool) -> SharedString {
@@ -284,12 +285,21 @@ impl<'a> Lexer<'a> {
 
         Some(token)
     }
+}
 
-    pub fn is_eof(&self) -> bool {
+impl<'a> Lexer for FileLexer<'a> {
+    fn get_source(&self) -> SourceLocation {
+        SourceLocation {
+            filename: self.file.into_string(),
+            lineno: self.curr_line
+        }
+    }
+
+    fn is_eof(&self) -> bool {
         self.curr.is_none()
     }
 
-    pub fn next_token(&mut self) -> Token {
+    fn next_token(&mut self) -> Token {
         if self.is_eof() {
             EOF
         } else {
@@ -304,7 +314,7 @@ impl<'a> Lexer<'a> {
     }
 
     #[allow(dead_code)]  // Used for tests
-    pub fn tokenize(&mut self) -> Vec<Token> {
+    fn tokenize(&mut self) -> Vec<Token> {
         let mut tokens = vec![];
 
         // NOTE: We can't use `for c in self.iter` because then we can't
@@ -323,72 +333,106 @@ impl<'a> Lexer<'a> {
 }
 
 
+impl Lexer for Vec<Token> {
+    fn get_source(&self) -> SourceLocation {
+        SourceLocation {
+            filename: "<input>".into_string(),
+            lineno: 0
+        }
+    }
+
+    fn is_eof(&self) -> bool {
+        self.is_empty()
+    }
+
+    fn next_token(&mut self) -> Token {
+        self.remove(0).unwrap_or_else(|| return EOF)
+    }
+
+    fn tokenize(&mut self) -> Vec<Token> {
+        let mut v = vec![];
+        v.push_all(self[]);
+
+        v
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
+    use std::rc::Rc;
+
     use super::super::instructions::INSTRUCTIONS;
     use super::*;
 
+    // TODO: Move to better place
+    macro_rules! str(
+        ($s:expr) => (
+            Rc::new($s.into_string())
+        )
+    )
+
     #[test]
     fn test_mnemonic() {
-        assert_eq!(Lexer::new("MOV").tokenize(),
+        assert_eq!(FileLexer::new("MOV", "<test>").tokenize(),
                    vec![MNEMONIC(from_str("MOV").unwrap())]);
     }
 
     #[test]
     fn test_ident() {
-        assert_eq!(Lexer::new("abc").tokenize(),
-                   vec![IDENT("abc".into_string())]);
+        assert_eq!(FileLexer::new("abc", "<test>").tokenize(),
+                   vec![IDENT(str!("abc"))]);
     }
 
     #[test]
     fn test_digit() {
-        assert_eq!(Lexer::new("128").tokenize(),
+        assert_eq!(FileLexer::new("128", "<test>").tokenize(),
                    vec![INTEGER(128)]);
     }
 
     #[test]
     fn test_char() {
-        assert_eq!(Lexer::new("'a'").tokenize(),
+        assert_eq!(FileLexer::new("'a'", "<test>").tokenize(),
                    vec![CHAR('a' as u8)]);
-        assert_eq!(Lexer::new("' '").tokenize(),
+        assert_eq!(FileLexer::new("' '", "<test>").tokenize(),
                    vec![CHAR(' ' as u8)]);
-        assert_eq!(Lexer::new("'\n'").tokenize(),
+        assert_eq!(FileLexer::new("'\n'", "<test>").tokenize(),
                    vec![CHAR('\n' as u8)]);
-        assert_eq!(Lexer::new("'\\\''").tokenize(),
+        assert_eq!(FileLexer::new("'\\\''", "<test>").tokenize(),
                    vec![CHAR('\'' as u8)]);
     }
 
     #[test]
     fn test_path() {
-        assert_eq!(Lexer::new("<asd>").tokenize(),
-                   vec![PATH("asd".into_string())]);
+        assert_eq!(FileLexer::new("<asd>", "<test>").tokenize(),
+                   vec![PATH(str!("asd"))]);
     }
 
     #[test]
     fn test_comment() {
-        assert_eq!(Lexer::new("; asd").tokenize(),
+        assert_eq!(FileLexer::new("; asd", "<test>").tokenize(),
                    vec![]);
-        assert_eq!(Lexer::new("; asd\nMOV ;asd\nMOV").tokenize(),
+        assert_eq!(FileLexer::new("; asd\nMOV ;asd\nMOV", "<test>").tokenize(),
                    vec![MNEMONIC(from_str("MOV").unwrap()),
                         MNEMONIC(from_str("MOV").unwrap())]);
     }
 
     #[test]
     fn test_whitespace() {
-        assert_eq!(Lexer::new("\n\n\n\n     \n\t\n").tokenize(),
+        assert_eq!(FileLexer::new("\n\n\n\n     \n\t\n", "<test>").tokenize(),
                    vec![]);
-        assert_eq!(Lexer::new("      MOV        \n\n MOV").tokenize(),
+        assert_eq!(FileLexer::new("      MOV        \n\n MOV", "<test>").tokenize(),
                    vec![MNEMONIC(from_str("MOV").unwrap()),
                         MNEMONIC(from_str("MOV").unwrap())]);
     }
 
     #[test]
     fn test_line_counter() {
-        let mut lx = Lexer::new("MOV\nMOV");
+        let mut lx = FileLexer::new("MOV\nMOV", "<test>");
         lx.tokenize();
         assert_eq!(lx.curr_line, 2);
 
-        let mut lx = Lexer::new("MOV\r\nMOV");
+        let mut lx = FileLexer::new("MOV\r\nMOV", "<test>");
         lx.tokenize();
         assert_eq!(lx.curr_line, 2);
     }

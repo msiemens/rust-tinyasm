@@ -22,7 +22,7 @@ impl FromStr for Type {
 macro_rules! make_instructions(
     ( $( $op:ident ),* ) => {
 
-        #[deriving(PartialEq, Eq, Show, Hash)]
+        #[deriving(Clone, PartialEq, Eq, Show, Hash)]
         pub enum Instructions {
             $( $op ),*
         }
