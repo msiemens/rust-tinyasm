@@ -230,42 +230,28 @@ impl<'a> Parser<'a> {
 mod tests {
     use std::rc::Rc;
 
-    use super::*;
     use assembler::dummy_source;
     use assembler::lexer::*;
     use assembler::ast::*;
 
-    macro_rules! str(
-        ($s:expr) => (
-            Rc::new($s.into_string())
-        )
-    )
+    use super::*;
 
-    macro_rules! parse(
-        ($src:expr with $f:ident) => (
-            {
-                let mut p = Parser::with_lexer(box $src as Box<Lexer>);
-                p.$f()
-            }
-        )
-    )
-
-    macro_rules! parser(
-        ($src:expr) => (
-            Parser::with_lexer(box $src as Box<Lexer>)
-        )
-    )
+    fn parse<'a, T>(toks: Vec<Token>, f: |&mut Parser<'a>| -> T) -> T {
+        f(&mut Parser::with_lexer(box toks as Box<Lexer>))
+    }
 
     #[test]
     fn test_statements() {
         assert_eq!(
-            parse!(vec![HASH, IDENT(str!("import")), PATH(str!("as/d")),
-                        MNEMONIC(from_str("HALT").unwrap())]
-                   with parse),
+            parse(
+                vec![HASH, IDENT(rcstr!("import")), PATH(rcstr!("as/d")),
+                     MNEMONIC(from_str("HALT").unwrap())],
+                |p| p.parse()
+            ),
             vec![
                 Statement::new(
                     StatementInclude(
-                        Path(str!("as/d"))
+                        Path(rcstr!("as/d"))
                     ),
                     dummy_source()
                 ),
@@ -283,11 +269,11 @@ mod tests {
     #[test]
     fn test_include() {
         assert_eq!(
-            parse!(vec![HASH, IDENT(str!("import")), PATH(str!("as/d"))]
-                   with parse_statement),
+            parse(vec![HASH, IDENT(rcstr!("import")), PATH(rcstr!("as/d"))],
+                  |p| p.parse_statement()),
             Statement::new(
                 StatementInclude(
-                    Path(str!("as/d"))
+                    Path(rcstr!("as/d"))
                 ),
                 dummy_source()
             )
@@ -297,11 +283,11 @@ mod tests {
     #[test]
     fn test_label_def() {
         assert_eq!(
-            parse!(vec![IDENT(str!("lbl")), COLON]
-                   with parse_statement),
+            parse(vec![IDENT(rcstr!("lbl")), COLON],
+                  |p| p.parse_statement()),
             Statement::new(
                 StatementLabel(
-                    Ident(str!("lbl"))
+                    Ident(rcstr!("lbl"))
                 ),
                 dummy_source()
             )
@@ -311,11 +297,11 @@ mod tests {
     #[test]
     fn test_const_def() {
         assert_eq!(
-            parse!(vec![DOLLAR, IDENT(str!("c")), EQ, INTEGER(0)]
-                   with parse_statement),
+            parse(vec![DOLLAR, IDENT(rcstr!("c")), EQ, INTEGER(0)],
+                  |p| p.parse_statement()),
             Statement::new(
                 StatementConst(
-                    Ident(str!("c")),
+                    Ident(rcstr!("c")),
                     Argument::new(
                         ArgumentLiteral(0),
                         dummy_source()
@@ -329,8 +315,8 @@ mod tests {
     #[test]
     fn test_operation() {
         assert_eq!(
-            parse!(vec![MNEMONIC(from_str("MOV").unwrap()), INTEGER(0)]
-                   with parse_statement),
+            parse(vec![MNEMONIC(from_str("MOV").unwrap()), INTEGER(0)],
+                  |p| p.parse_statement()),
             Statement::new(
                 StatementOperation(
                     Mnemonic(from_str("MOV").unwrap()),
@@ -349,12 +335,12 @@ mod tests {
     #[test]
     fn test_macro() {
         assert_eq!(
-            parse!(vec![AT, IDENT(str!("macro")),
-                        LPAREN, INTEGER(0), COMMA, INTEGER(0), RPAREN]
-                   with parse_statement),
+            parse(vec![AT, IDENT(rcstr!("macro")),
+                       LPAREN, INTEGER(0), COMMA, INTEGER(0), RPAREN],
+                  |p| p.parse_statement()),
             Statement::new(
                 StatementMacro(
-                    Ident(str!("macro")),
+                    Ident(rcstr!("macro")),
                     vec![
                         MacroArgument::new(
                             MacroArgArgument(
@@ -384,8 +370,8 @@ mod tests {
     #[test]
     fn test_literal() {
         assert_eq!(
-            parse!(vec![INTEGER(0)]
-                   with parse_argument),
+            parse(vec![INTEGER(0)],
+                  |p| p.parse_argument()),
             Argument::new(
                 ArgumentLiteral(0),
                 dummy_source()
@@ -396,8 +382,8 @@ mod tests {
     #[test]
     fn test_address() {
         assert_eq!(
-            parse!(vec![LBRACKET, INTEGER(0), RBRACKET]
-                   with parse_argument),
+            parse(vec![LBRACKET, INTEGER(0), RBRACKET],
+                  |p| p.parse_argument()),
             Argument::new(
                 ArgumentAddress(Some(0)),
                 dummy_source()
@@ -408,8 +394,8 @@ mod tests {
     #[test]
     fn test_address_auto() {
         assert_eq!(
-            parse!(vec![LBRACKET, UNDERSCORE, RBRACKET]
-                   with parse_argument),
+            parse(vec![LBRACKET, UNDERSCORE, RBRACKET],
+                  |p| p.parse_argument()),
             Argument::new(
                 ArgumentAddress(None),
                 dummy_source()
@@ -420,11 +406,11 @@ mod tests {
     #[test]
     fn test_const() {
         assert_eq!(
-            parse!(vec![DOLLAR, IDENT(str!("asd"))]
-                   with parse_argument),
+            parse(vec![DOLLAR, IDENT(rcstr!("asd"))],
+                  |p| p.parse_argument()),
             Argument::new(
                 ArgumentConst(
-                    Ident(str!("asd"))
+                    Ident(rcstr!("asd"))
                 ),
                 dummy_source()
             )
@@ -434,11 +420,11 @@ mod tests {
     #[test]
     fn test_label() {
         assert_eq!(
-            parse!(vec![COLON, IDENT(str!("asd"))]
-                   with parse_argument),
+            parse(vec![COLON, IDENT(rcstr!("asd"))],
+                  |p| p.parse_argument()),
             Argument::new(
                 ArgumentLabel(
-                    Ident(str!("asd"))
+                    Ident(rcstr!("asd"))
                 ),
                 dummy_source()
             )
@@ -448,8 +434,8 @@ mod tests {
     #[test]
     fn test_char() {
         assert_eq!(
-            parse!(vec![CHAR(0)]
-                   with parse_argument),
+            parse(vec![CHAR(0)],
+                  |p| p.parse_argument()),
             Argument::new(
                 ArgumentChar(0),
                 dummy_source()
@@ -460,8 +446,8 @@ mod tests {
     #[test]
     fn test_macro_arg_arg() {
         assert_eq!(
-            parse!(vec![INTEGER(0)]
-                   with parse_macro_argument),
+            parse(vec![INTEGER(0)],
+                  |p| p.parse_macro_argument()),
             MacroArgument::new(
                 MacroArgArgument(
                     Argument::new(
@@ -477,11 +463,11 @@ mod tests {
     #[test]
     fn test_macro_arg_ident() {
         assert_eq!(
-            parse!(vec![IDENT(str!("asd"))]
-                   with parse_macro_argument),
+            parse(vec![IDENT(rcstr!("asd"))],
+                  |p| p.parse_macro_argument()),
             MacroArgument::new(
                 MacroArgIdent(
-                    Ident(str!("asd"))
+                    Ident(rcstr!("asd"))
                 ),
                 dummy_source()
             )

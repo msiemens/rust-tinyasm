@@ -11,11 +11,20 @@ use std::rc::Rc;
 use super::Args;
 
 
+macro_rules! rcstr(
+    ($s:expr) => (
+        Rc::new($s.into_string())
+    )
+)
+
+
 mod instructions;
 mod ast;
 mod lexer;
 mod parser;
+mod codegen;
 mod util;
+
 
 
 type SharedString = Rc<String>;
@@ -43,33 +52,22 @@ pub fn dummy_source() -> SourceLocation {
 
 #[cfg(not(test))]
 pub fn main(args: Args) {
-    let mut assembler = Assembler {
-        input: Path::new(args.arg_input),
+    // Read source file
+    let source_file = Path::new(args.arg_input);
+    let source = match File::open(&source_file).read_to_string() {
+        Ok(contents) => contents,
+        Err(_) => panic!("Cannot read {}", source_file.display())
     };
+    // FIXME: More beautiful code!
+    let filename = source_file.str_components().last().unwrap().unwrap();
 
-    assembler.run()
-}
-
-
-#[cfg(not(test))]
-struct Assembler<'a> {
-    input: Path,
-}
-
-#[cfg(not(test))]
-impl<'a> Assembler<'a> {
-    fn run(&mut self) {
-        // Read source file
-        let source = match File::open(&self.input).read_to_string() {
-            Ok(contents) => contents,
-            Err(_) => panic!("Cannot read {}", self.input.display())
-        };
-        // FIXME: More beautiful code!
-        let filename = self.input.str_components().last().unwrap().unwrap();
-
-        println!("AST:")
-        for stmt in parser::Parser::new(source[], filename).parse().iter() {
-            println!("{}", stmt);
-        }
+    println!("AST:")
+    let ast = parser::Parser::new(source[], filename).parse();
+    for stmt in ast.iter() {
+        println!("{}", stmt);
     }
+
+    println!("Binary:")
+    let binary = codegen::generate_binary(ast);
+    println!("{}", binary)
 }

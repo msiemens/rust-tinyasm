@@ -337,8 +337,6 @@ impl Lexer for Vec<Token> {
     }
 
     fn next_token(&mut self) -> Token {
-        println!("v: {}", self);
-
         match self.remove(0) {
             Some(tok) => tok,
             None => EOF
@@ -360,69 +358,60 @@ mod tests {
 
     use super::*;
 
-    // TODO: Move to better place
-    macro_rules! str(
-        ($s:expr) => (
-            Rc::new($s.into_string())
-        )
-    )
-
-    macro_rules! lex(
-        ($src:expr) => (
-            FileLexer::new($src, "<test>").tokenize()
-        )
-    )
+    fn tokenize(src: &'static str) -> Vec<Token> {
+        FileLexer::new(src, "<test>").tokenize()
+    }
 
     #[test]
     fn test_mnemonic() {
-        assert_eq!(lex!("MOV"),
+        assert_eq!(tokenize("MOV"),
                    vec![MNEMONIC(from_str("MOV").unwrap())]);
     }
 
     #[test]
     fn test_ident() {
-        assert_eq!(lex!("abc"),
-                   vec![IDENT(str!("abc"))]);
+        assert_eq!(tokenize("abc"),
+                   vec![IDENT(rcstr!("abc"))]);
     }
 
     #[test]
     fn test_digit() {
-        assert_eq!(lex!("128"),
+        assert_eq!(tokenize("128"),
                    vec![INTEGER(128)]);
     }
 
     #[test]
     fn test_char() {
-        assert_eq!(lex!("'a'"),
+        assert_eq!(tokenize("'a'"),
                    vec![CHAR('a' as u8)]);
-        assert_eq!(lex!("' '"),
+        assert_eq!(tokenize("' '"),
                    vec![CHAR(' ' as u8)]);
-        assert_eq!(lex!("'\n'"),
+        assert_eq!(tokenize("'\n'"),
                    vec![CHAR('\n' as u8)]);
-        assert_eq!(lex!("'\\\''"),
+        assert_eq!(tokenize("'\\\''"),
                    vec![CHAR('\'' as u8)]);
     }
 
     #[test]
     fn test_path() {
-        assert_eq!(lex!("<asd>"),
-                   vec![PATH(str!("asd"))]);
+        assert_eq!(tokenize("<asd>"),
+                   vec![PATH(rcstr!("asd"))]);
     }
 
     #[test]
     fn test_comment() {
-        assert_eq!(lex!("; asd"),
+        assert_eq!(tokenize("; asd"),
                    vec![]);
-        assert_eq!(lex!("; asd\nMOV ;asd\nMOV"),
+        assert_eq!(tokenize("; asd\nMOV ;asd\nMOV"),
                    vec![MNEMONIC(from_str("MOV").unwrap()),
                         MNEMONIC(from_str("MOV").unwrap())]);
     }
 
     #[test]
     fn test_whitespace() {
-        assert_eq!(lex!("\n\n\n\n     \n\t\n"),
+        assert_eq!(tokenize("\n\n\n\n     \n\t\n"),
                    vec![]);
-        assert_eq!(lex!("      MOV        \n\n MOV"),
+        assert_eq!(tokenize("      MOV        \n\n MOV"),
                    vec![MNEMONIC(from_str("MOV").unwrap()),
                         MNEMONIC(from_str("MOV").unwrap())]);
     }
