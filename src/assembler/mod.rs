@@ -1,8 +1,7 @@
-// TODO: Code cleanup (str!, ...)
-// TODO: Implement code generation
 // TODO: Framework for AST processors
 // TODO: Implement AST processors
 
+use std::io::{Open, Write};
 use std::fmt::{Show, Formatter, FormatError};
 #[cfg(not(test))] use std::io::File;
 use std::rc::Rc;
@@ -58,16 +57,32 @@ pub fn main(args: Args) {
         Ok(contents) => contents,
         Err(_) => panic!("Cannot read {}", source_file.display())
     };
-    // FIXME: More beautiful code!
     let filename = source_file.str_components().last().unwrap().unwrap();
 
-    println!("AST:")
     let ast = parser::Parser::new(source[], filename).parse();
-    for stmt in ast.iter() {
-        println!("{}", stmt);
+
+    if args.flag_v {
+        println!("AST:")
+        for stmt in ast.iter() {
+            println!("{}", stmt);
+        }
+        println!("")
+        println!("Binary:")
     }
 
-    println!("Binary:")
     let binary = codegen::generate_binary(ast);
-    println!("{}", binary)
+
+    if args.flag_bin {
+        let mut file = File::open_mode(&Path::new(args.arg_output), Open, Write);
+        for b in binary.iter() {
+            match file.write([*b][]).err() {
+                Some(e) => panic!("Cannot write to output file: {}", e),
+                None => {}
+            }
+        }
+    } else {
+        for b in binary.iter() {
+            print!("{:#04X} ", *b)
+        }
+    }
 }

@@ -104,7 +104,7 @@ impl<'a> FileLexer<'a> {
             };
 
             fatal(format!("Expected `{}`, found `{}`",
-                          expect_str, found_str), self.get_source())
+                          expect_str, found_str), &self.get_source())
         }
 
         self.bump();
@@ -156,7 +156,7 @@ impl<'a> FileLexer<'a> {
         let mnemonic = match from_str(mnemonic[]) {
             Some(m) => m,
             None => fatal(format!("invalid mnemonic: {}", mnemonic),
-                          self.get_source())
+                          &self.get_source())
         };
 
         MNEMONIC(mnemonic)
@@ -178,7 +178,7 @@ impl<'a> FileLexer<'a> {
         let integer = match from_str(integer[]) {
             Some(m) => m,
             None => fatal(format!("invalid integer: {}", integer),
-                          self.get_source())
+                          &self.get_source())
         };
 
         INTEGER(integer)
@@ -188,7 +188,7 @@ impl<'a> FileLexer<'a> {
         self.bump();  // '\'' matched, move on
         let c = self.curr.unwrap_or_else(|| {
             fatal(format!("expected a char, found EOF"),
-                  self.get_source());
+                  &self.get_source());
         });
 
         let tok = if c == '\\' {
@@ -199,15 +199,15 @@ impl<'a> FileLexer<'a> {
                 Some('n') => CHAR(10),
                 Some('\'') => CHAR(39),
                 Some(c) => fatal(format!("unsupported or invalid escape sequence: \\{}", c),
-                                 self.get_source()),
+                                 &self.get_source()),
                 None => fatal(format!("expected escaped char, found EOF"),
-                              self.get_source())
+                              &self.get_source())
             }
         } else if c.is_whitespace() || c.is_alphanumeric() {
             CHAR(c as u8)
         } else {
             fatal(format!("invalid character: {}", c),
-                  self.get_source())
+                  &self.get_source())
         };
         self.bump();
 
@@ -280,7 +280,7 @@ impl<'a> FileLexer<'a> {
             },
             c => {
                 fatal(format!("unknown token: {}", c),
-                      self.get_source())
+                      &self.get_source())
                 // UNKNOWN(format!("{}", c).into_string())
             }
         };

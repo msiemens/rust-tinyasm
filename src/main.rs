@@ -20,8 +20,8 @@ mod assembler;
 
 
 docopt!(Args deriving Show, "
-Usage: tiny asm <input>
-       tiny asm --bin <input> <output>
+Usage: tiny asm [-v] <input>
+       tiny asm [-v] --bin <input> <output>
        tiny vm <input>
        tiny --help
 

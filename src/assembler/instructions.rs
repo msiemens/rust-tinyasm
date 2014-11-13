@@ -56,21 +56,21 @@ struct Operation {
     pub args: Vec<Type>
 }
 
-pub type InstructionClass = HashMap<u8, Operation>;
+pub type InstructionClass = Vec<Operation>;
 pub type InstructionSet = HashMap<Instructions, InstructionClass>;
 
 
 macro_rules! instructions (
     ( $opcode:expr ; ) => (
         seq!{
-            $opcode => Operation { opcode: $opcode, args: seq![] },
+            Operation { opcode: $opcode, args: seq![] },
         }
     );
 
     ( $( $opcode:expr : $( $args:ident ),* ; )* ) => (
         seq!{
             $(
-                $opcode => Operation { opcode: $opcode, args: seq![ $( $args ),* ] },
+                Operation { opcode: $opcode, args: seq![ $( $args ),* ] },
             )*
         }
     )

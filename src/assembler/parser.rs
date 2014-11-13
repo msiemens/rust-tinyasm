@@ -31,9 +31,9 @@ impl<'a> Parser<'a> {
     fn unexpected_token(&self, tok: &Token, expected: Option<&'static str>) -> ! {
         match expected {
             Some(ex) => fatal(format!("unexpected token: `{}`, expected {}", tok, ex),
-                              self.lexer.get_source()),
+                              &self.lexer.get_source()),
             None => fatal(format!("unexpected token: `{}`", tok),
-                          self.lexer.get_source())
+                          &self.lexer.get_source())
         }
     }
 
@@ -59,7 +59,7 @@ impl<'a> Parser<'a> {
     fn expect(&mut self, tok: &Token) {
         if !self.eat(tok) {
             fatal(format!("expected `{}`, found `{}`", tok, self.token),
-                  self.lexer.get_source())
+                  &self.lexer.get_source())
         }
     }
 
