@@ -15,7 +15,7 @@ pub fn generate_binary(ast: Vec<Statement>) -> Vec<u8> {
                 // Get the argument types we received
                 let arg_types = args.iter().map(|ref arg| {
                     match arg.node {
-                        ArgumentLiteral(_) => Literal,
+                        ArgumentLiteral(_) | ArgumentChar(_) => Literal,
                         ArgumentAddress(_) => Address,
                         _ => fatal(format!("Invalid argument: {}", arg),
                                    &stmt.location)
@@ -44,6 +44,7 @@ pub fn generate_binary(ast: Vec<Statement>) -> Vec<u8> {
                 for arg in args.iter() {
                     match arg.node {
                         ArgumentLiteral(i) => binary.push(i),
+                        ArgumentChar(c) => binary.push(c),
                         ArgumentAddress(a) => match a {
                             Some(a) => binary.push(a),
                             None => panic!("Automem not implemented yet")

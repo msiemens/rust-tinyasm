@@ -1,5 +1,4 @@
-// TODO: Framework for AST processors
-// TODO: Implement AST processors
+// FIXME: Line numbers in SourceLocation
 
 use std::io::{Open, Write};
 use std::fmt::{Show, Formatter, FormatError};
@@ -22,13 +21,14 @@ mod ast;
 mod lexer;
 mod parser;
 mod codegen;
+mod syntax_ext;
 mod util;
 
 
 
 type SharedString = Rc<String>;
 
-#[deriving(PartialEq, Eq)]
+#[deriving(PartialEq, Eq, Clone)]
 pub struct SourceLocation {
     pub filename: String,
     pub lineno: uint
@@ -59,7 +59,7 @@ pub fn main(args: Args) {
     };
     let filename = source_file.str_components().last().unwrap().unwrap();
 
-    let ast = parser::Parser::new(source[], filename).parse();
+    let mut ast = parser::Parser::new(source[], filename).parse();
 
     if args.flag_v {
         println!("AST:")
@@ -67,7 +67,16 @@ pub fn main(args: Args) {
             println!("{}", stmt);
         }
         println!("")
-        println!("Binary:")
+    }
+
+    syntax_ext::expand_syntax_extensions(&mut ast);
+
+    if args.flag_v {
+        println!("Expanded AST:")
+        for stmt in ast.iter() {
+            println!("{}", stmt);
+        }
+        println!("")
     }
 
     let binary = codegen::generate_binary(ast);
@@ -82,7 +91,7 @@ pub fn main(args: Args) {
         }
     } else {
         for b in binary.iter() {
-            print!("{:#04X} ", *b)
+            print!("{:#04x} ", *b)
         }
     }
 }

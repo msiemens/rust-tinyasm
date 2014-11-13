@@ -11,12 +11,23 @@ pub fn fatal(msg: String, source: &SourceLocation) -> ! {
 
     t.reset().unwrap();
     (write!(t, "in {}: ", source)).unwrap();
-
-    t.fg(term::color::YELLOW).unwrap();
     (write!(t, "{}\n", msg)).unwrap();
 
     t.reset().unwrap();
 
     std::io::stdio::set_stderr(box std::io::util::NullWriter);
     panic!();
+}
+
+pub fn warn(msg: String, source: &SourceLocation) {
+    let mut t = term::stdout().unwrap();
+
+    t.fg(term::color::YELLOW).unwrap();
+    (write!(t, "Warning ")).unwrap();
+
+    t.reset().unwrap();
+    (write!(t, "in {}: ", source)).unwrap();
+    (write!(t, "{}\n", msg)).unwrap();
+
+    t.reset().unwrap();
 }

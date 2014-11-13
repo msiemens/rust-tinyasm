@@ -1,5 +1,6 @@
 use std;
 use std::rc::Rc;
+use std::collections::DList;
 
 use assembler::ast::*;
 use assembler::lexer::*;
@@ -8,7 +9,8 @@ use assembler::util::fatal;
 
 pub struct Parser<'a> {
     token: Token,
-    lookahead: Token,
+    //lookahead: Token,
+    buffer: DList<Token>,
     lexer: Box<Lexer + 'a>
 }
 
@@ -23,7 +25,7 @@ impl<'a> Parser<'a> {
 
         Parser {
             token: lx.next_token(),
-            lookahead: PLACEHOLDER,
+            buffer: DList::new(),
             lexer: lx
         }
     }
@@ -38,10 +40,9 @@ impl<'a> Parser<'a> {
     }
 
     fn bump(&mut self) {
-        let next = if self.lookahead == PLACEHOLDER {
-            self.lexer.next_token()
-        } else {
-            std::mem::replace(&mut self.lookahead, PLACEHOLDER)
+        let next = match self.buffer.pop_front() {
+            Some(tok) => tok,
+            None => self.lexer.next_token()
         };
 
         std::mem::replace(&mut self.token, next);
@@ -63,6 +64,16 @@ impl<'a> Parser<'a> {
         }
     }
 
+    pub fn look_ahead<R>(&mut self, distance: uint, f: |&Token| -> R) -> R {
+        if self.buffer.len() < distance {
+            for _ in range(0, distance - self.buffer.len()) {
+                self.buffer.push_back(self.lexer.next_token());
+            }
+        }
+
+        f(self.buffer.iter().nth(distance - 1).unwrap())
+    }
+
     pub fn parse(&mut self) -> Vec<Statement> {
         let mut ast = vec![];
 
@@ -70,15 +81,15 @@ impl<'a> Parser<'a> {
             ast.push(self.parse_statement());
         }
 
-
         ast
     }
 
     // -------------------------------------------------------------------
 
-    fn token_is_argument(&self) -> bool {
+    fn token_is_argument(&mut self) -> bool {
         match self.token {
-            INTEGER(_) | CHAR(_) | LBRACKET | DOLLAR | COLON => true,
+            INTEGER(_) | CHAR(_) | LBRACKET | COLON => true,
+            DOLLAR => self.look_ahead(2, |t| return t != &EQ),
             _ => false
         }
     }
@@ -471,6 +482,34 @@ mod tests {
                 ),
                 dummy_source()
             )
+        )
+    }
+
+    #[test]
+    fn test_op_and_const() {
+        assert_eq!(
+            parse(vec![MNEMONIC(from_str("HALT").unwrap()),
+                       DOLLAR, IDENT(rcstr!("c")), EQ, INTEGER(0)],
+                  |p| p.parse()),
+            vec![
+                Statement::new(
+                    StatementOperation(
+                        Mnemonic(from_str("HALT").unwrap()),
+                        vec![]
+                    ),
+                    dummy_source()
+                ),
+                Statement::new(
+                    StatementConst(
+                        Ident(rcstr!("c")),
+                        Argument::new(
+                            ArgumentLiteral(0),
+                            dummy_source()
+                        )
+                    ),
+                    dummy_source()
+                )
+            ]
         )
     }
 }
