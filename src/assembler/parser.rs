@@ -1,12 +1,12 @@
-use std;
 use std::collections::DList;
 
 use assembler::ast::*;
-use assembler::lexer::{Lexer, FileLexer, Token};
+use assembler::lexer::{SourceLocation, Lexer, FileLexer, Token};
 use assembler::util::{fatal, rcstr};
 
 
 pub struct Parser<'a> {
+    location: SourceLocation,
     token: Token,
     buffer: DList<Token>,
     lexer: Box<Lexer + 'a>
@@ -22,6 +22,7 @@ impl<'a> Parser<'a> {
 
         Parser {
             token: lx.next_token(),
+            location: lx.get_source(),
             buffer: DList::new(),
             lexer: lx
         }
@@ -29,7 +30,7 @@ impl<'a> Parser<'a> {
 
 
     fn fatal(&self, msg: String) -> ! {
-        fatal(msg, &self.lexer.get_source());
+        fatal(msg, &self.location);
     }
 
     fn unexpected_token(&self, tok: &Token, expected: Option<&'static str>) -> ! {
@@ -40,12 +41,15 @@ impl<'a> Parser<'a> {
     }
 
     fn bump(&mut self) {
-        let next = match self.buffer.pop_front() {
+        self.token = match self.buffer.pop_front() {
             Some(tok) => tok,
             None => self.lexer.next_token()
         };
+    }
 
-        std::mem::replace(&mut self.token, next);
+    fn update_location(&mut self) -> SourceLocation {
+        self.location = self.lexer.get_source();
+        self.location.clone()
     }
 
     fn eat(&mut self, tok: &Token) -> bool {
@@ -73,12 +77,17 @@ impl<'a> Parser<'a> {
         f(self.buffer.iter().nth(distance - 1).unwrap())
     }
 
+
     pub fn parse(&mut self) -> Vec<Statement> {
         let mut ast = vec![];
+
+        debug!("Starting parsing")
 
         while self.token != Token::EOF {
             ast.push(self.parse_statement());
         }
+
+        debug!("Parsing finished")
 
         ast
     }
@@ -143,6 +152,8 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_argument(&mut self) -> Argument {
+        let location = self.update_location();
+
         let arg = match self.token {
             Token::INTEGER(i) => { self.bump(); ArgumentLiteral(i) },
             Token::CHAR(c)    => { self.bump(); ArgumentChar(c) },
@@ -152,45 +163,55 @@ impl<'a> Parser<'a> {
             _ => self.unexpected_token(&self.token, Some("an argument"))
         };
 
-        Argument::new(arg, self.lexer.get_source())
+        Argument::new(arg, location)
     }
 
     fn parse_macro_argument(&mut self) -> MacroArgument {
+        let location = self.update_location();
+
         if self.token_is_argument() {
             MacroArgument::new(MacroArgArgument(self.parse_argument()),
-                               self.lexer.get_source())
+                               location)
         } else {
             MacroArgument::new(MacroArgIdent(self.parse_ident()),
-                               self.lexer.get_source())
+                               location)
         }
     }
 
     // -------------------------------------------------------------------
 
     fn parse_include(&mut self) -> Statement {
+        let location = self.update_location();
+
         self.bump();
         self.expect(&Token::IDENT(rcstr("import")));
         let path = self.parse_path();
 
-        Statement::new(StatementInclude(path), self.lexer.get_source())
+        Statement::new(StatementInclude(path), location)
     }
 
     fn parse_label_def(&mut self) -> Statement {
+        let location = self.update_location();
+
         let label = self.parse_ident();
         self.expect(&Token::COLON);
 
-        Statement::new(StatementLabel(label), self.lexer.get_source())
+        Statement::new(StatementLabel(label), location)
     }
 
     fn parse_constant_def(&mut self) -> Statement {
+        let location = self.update_location();
+
         let name = self.parse_constant();
         self.expect(&Token::EQ);
         let value = self.parse_argument();
 
-        Statement::new(StatementConst(name, value), self.lexer.get_source())
+        Statement::new(StatementConst(name, value), location)
     }
 
     fn parse_operation(&mut self) -> Statement {
+        let location = self.update_location();
+
         let mn = if let Token::MNEMONIC(mn) = self.token {
             Mnemonic(mn)
         } else {
@@ -204,10 +225,12 @@ impl<'a> Parser<'a> {
             args.push(self.parse_argument());
         }
 
-        Statement::new(StatementOperation(mn, args), self.lexer.get_source())
+        Statement::new(StatementOperation(mn, args), location)
     }
 
     fn parse_macro(&mut self) -> Statement {
+        let location = self.update_location();
+
         self.expect(&Token::AT);
         let name = self.parse_ident();
 
@@ -224,11 +247,11 @@ impl<'a> Parser<'a> {
         }
         self.expect(&Token::RPAREN);
 
-        Statement::new(StatementMacro(name, args), self.lexer.get_source())
+        Statement::new(StatementMacro(name, args), location)
     }
 
     fn parse_statement(&mut self) -> Statement {
-        match self.token {
+        let stmt = match self.token {
             Token::HASH        => self.parse_include(),
             Token::DOLLAR      => self.parse_constant_def(),
             Token::IDENT(_)    => self.parse_label_def(),
@@ -236,7 +259,9 @@ impl<'a> Parser<'a> {
             Token::AT          => self.parse_macro(),
 
             ref tok => self.unexpected_token(tok, Some("a statement"))
-        }
+        };
+
+        stmt
     }
 }
 
@@ -244,9 +269,10 @@ impl<'a> Parser<'a> {
 mod tests {
     use std::rc::Rc;
 
-    use assembler::{rcstr, dummy_source};
-    use assembler::lexer::Token::*;
     use assembler::ast::*;
+    use assembler::lexer::{dummy_source, Token, Lexer};
+    use assembler::lexer::Token::*;
+    use assembler::util::rcstr;
 
     use super::*;
 

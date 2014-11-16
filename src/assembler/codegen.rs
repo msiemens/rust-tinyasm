@@ -61,8 +61,8 @@ pub fn generate_binary(ast: Vec<Statement>) -> Vec<u8> {
 
 #[cfg(test)]
 mod test {
-    use assembler::dummy_source;
     use assembler::ast::*;
+    use assembler::lexer::dummy_source;
 
     use super::generate_binary;
 

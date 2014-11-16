@@ -8,7 +8,7 @@ use assembler::lexer::SourceLocation;
 
 pub type SharedString = Rc<String>;
 
-pub fn rcstr(s: &'static str) -> SharedString {
+pub fn rcstr<'a>(s: &'a str) -> SharedString {
     Rc::new(s.into_string())
 }
 

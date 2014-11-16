@@ -2,6 +2,7 @@ use std::io::File;
 
 use assembler::ast::*;
 use assembler::parser::Parser;
+use assembler::util::fatal;
 
 
 pub fn expand(ast: &mut Vec<Statement>) {
@@ -12,7 +13,7 @@ pub fn expand(ast: &mut Vec<Statement>) {
     while i < ast.len() {
         let included_ast = match ast[i].node {
             StatementInclude(ref include) => {
-                let path = Path::new(&ast[i].location.filename);
+                let path = Path::new(&*ast[i].location.filename);
                 let dir = Path::new(path.dirname());
                 let to_include = dir.join(include.as_str()[]);
 
@@ -21,7 +22,8 @@ pub fn expand(ast: &mut Vec<Statement>) {
                 let contents = File::open(&to_include)
                     .read_to_string()
                     .unwrap_or_else(|e| {
-                        panic!("Cannot read {}: {}", to_include.display(), e)
+                        fatal!("Cannot read {}: {}", to_include.display(), e
+                               @ ast[i]);
                     });
                 let mut parser = Parser::new(contents[], to_include.as_str().unwrap());
 

@@ -7,7 +7,7 @@ use assembler::util::{fatal, rcstr, SharedString};
 
 #[deriving(PartialEq, Eq, Clone)]
 pub struct SourceLocation {
-    pub filename: String,
+    pub filename: SharedString,
     pub lineno: uint
 }
 
@@ -19,7 +19,7 @@ impl fmt::Show for SourceLocation {
 
 pub fn dummy_source() -> SourceLocation {
     SourceLocation {
-        filename: "<input>".into_string(),
+        filename: rcstr("<input>"),
         lineno: 0
     }
 }
@@ -90,7 +90,7 @@ pub trait Lexer {
 
 pub struct FileLexer<'a> {
     source: &'a str,
-    file: &'a str,
+    file: SharedString,
     len: uint,
     pos: uint,
     curr: Option<char>,
@@ -101,7 +101,7 @@ impl<'a> FileLexer<'a> {
     pub fn new(source: &'a str, file: &'a str) -> FileLexer<'a> {
         FileLexer {
             source: source,
-            file: file,
+            file: rcstr(file),
             len: source.len(),
             pos: 0,
             curr: Some(source.char_at(0)),
@@ -330,7 +330,7 @@ impl<'a> FileLexer<'a> {
 impl<'a> Lexer for FileLexer<'a> {
     fn get_source(&self) -> SourceLocation {
         SourceLocation {
-            filename: self.file.into_string(),
+            filename: self.file.clone(),
             lineno: self.lineno
         }
     }
@@ -395,9 +395,9 @@ impl Lexer for Vec<Token> {
 mod tests {
     use std::rc::Rc;
 
-    use assembler::rcstr;
-    use super::tokenize;
+    use super::{Token, Lexer, FileLexer};
     use super::Token::*;
+    use assembler::util::rcstr;
 
     fn tokenize(src: &'static str) -> Vec<Token> {
         FileLexer::new(src, "<test>").tokenize()
@@ -466,5 +466,9 @@ mod tests {
         let mut lx = FileLexer::new("MOV\r\nMOV", "<test>");
         lx.tokenize();
         assert_eq!(lx.lineno, 2);
+
+        let mut lx = FileLexer::new("#include<lib\\something>", "<test>");
+        lx.tokenize();
+        assert_eq!(lx.lineno, 1);
     }
 }
