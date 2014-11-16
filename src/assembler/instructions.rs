@@ -1,6 +1,6 @@
 use std::ascii::AsciiExt;
 use std::collections::HashMap;
-use std::from_str::FromStr;
+use std::str::FromStr;
 
 
 #[deriving(PartialEq, Show)]

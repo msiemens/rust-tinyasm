@@ -1,21 +1,18 @@
 use std;
-use std::rc::Rc;
 use std::collections::DList;
 
 use assembler::ast::*;
-use assembler::lexer::*;
-use assembler::util::fatal;
+use assembler::lexer::{Lexer, FileLexer, Token};
+use assembler::util::{fatal, rcstr};
 
 
 pub struct Parser<'a> {
     token: Token,
-    //lookahead: Token,
     buffer: DList<Token>,
     lexer: Box<Lexer + 'a>
 }
 
 impl<'a> Parser<'a> {
-    #[cfg(not(test))]
     pub fn new(source: &'a str, file: &'a str) -> Parser<'a> {
         Parser::with_lexer(box FileLexer::new(source, file))
     }
@@ -30,12 +27,15 @@ impl<'a> Parser<'a> {
         }
     }
 
+
+    fn fatal(&self, msg: String) -> ! {
+        fatal(msg, &self.lexer.get_source());
+    }
+
     fn unexpected_token(&self, tok: &Token, expected: Option<&'static str>) -> ! {
         match expected {
-            Some(ex) => fatal(format!("unexpected token: `{}`, expected {}", tok, ex),
-                              &self.lexer.get_source()),
-            None => fatal(format!("unexpected token: `{}`", tok),
-                          &self.lexer.get_source())
+            Some(ex) => self.fatal(format!("unexpected token: `{}`, expected {}", tok, ex)),
+            None => self.fatal(format!("unexpected token: `{}`", tok))
         }
     }
 
@@ -59,8 +59,7 @@ impl<'a> Parser<'a> {
 
     fn expect(&mut self, tok: &Token) {
         if !self.eat(tok) {
-            fatal(format!("expected `{}`, found `{}`", tok, self.token),
-                  &self.lexer.get_source())
+            self.fatal(format!("expected `{}`, found `{}`", tok, self.token))
         }
     }
 
@@ -77,7 +76,7 @@ impl<'a> Parser<'a> {
     pub fn parse(&mut self) -> Vec<Statement> {
         let mut ast = vec![];
 
-        while self.token != EOF {
+        while self.token != Token::EOF {
             ast.push(self.parse_statement());
         }
 
@@ -88,8 +87,9 @@ impl<'a> Parser<'a> {
 
     fn token_is_argument(&mut self) -> bool {
         match self.token {
-            INTEGER(_) | CHAR(_) | LBRACKET | COLON => true,
-            DOLLAR => self.look_ahead(2, |t| return t != &EQ),
+            Token::INTEGER(_) | Token::CHAR(_)
+                | Token::LBRACKET | Token::COLON => true,
+            Token::DOLLAR => self.look_ahead(2, |t| return t != &Token::EQ),
             _ => false
         }
     }
@@ -98,7 +98,7 @@ impl<'a> Parser<'a> {
 
     fn parse_ident(&mut self) -> Ident {
         let ident = match self.token {
-            IDENT(ref id) => Ident(id.clone()),
+            Token::IDENT(ref id) => Ident(id.clone()),
             _ => self.unexpected_token(&self.token, Some("a identifier"))
         };
         self.bump();
@@ -106,9 +106,9 @@ impl<'a> Parser<'a> {
         ident
     }
 
-    fn parse_path(&mut self) -> Path {
+    fn parse_path(&mut self) -> IPath {
         let path = match self.token {
-            PATH(ref p) => Path(p.clone()),
+            Token::PATH(ref p) => IPath(p.clone()),
             _ => self.unexpected_token(&self.token, Some("a path"))
         };
         self.bump();
@@ -119,36 +119,36 @@ impl<'a> Parser<'a> {
     // -------------------------------------------------------------------
 
     fn parse_address(&mut self) -> Option<u8> {
-        self.expect(&LBRACKET);
+        self.expect(&Token::LBRACKET);
         let value = match self.token {
-            INTEGER(i) => Some(i),
-            UNDERSCORE => None,
+            Token::INTEGER(i) => Some(i),
+            Token::UNDERSCORE => None,
             _ => self.unexpected_token(&self.token, Some("an address"))
         };
         self.bump();
-        self.expect(&RBRACKET);
+        self.expect(&Token::RBRACKET);
 
         value
     }
 
     fn parse_label(&mut self) -> Ident {
-        self.expect(&COLON);
+        self.expect(&Token::COLON);
 
         self.parse_ident()
     }
 
     fn parse_constant(&mut self) -> Ident {
-        self.expect(&DOLLAR);
+        self.expect(&Token::DOLLAR);
         self.parse_ident()
     }
 
     fn parse_argument(&mut self) -> Argument {
         let arg = match self.token {
-            INTEGER(i) => { self.bump(); ArgumentLiteral(i) },
-            CHAR(c) => { self.bump(); ArgumentChar(c) },
-            LBRACKET => ArgumentAddress(self.parse_address()),
-            DOLLAR => ArgumentConst(self.parse_constant()),
-            COLON => ArgumentLabel(self.parse_label()),
+            Token::INTEGER(i) => { self.bump(); ArgumentLiteral(i) },
+            Token::CHAR(c)    => { self.bump(); ArgumentChar(c) },
+            Token::LBRACKET   => ArgumentAddress(self.parse_address()),
+            Token::DOLLAR     => ArgumentConst(self.parse_constant()),
+            Token::COLON      => ArgumentLabel(self.parse_label()),
             _ => self.unexpected_token(&self.token, Some("an argument"))
         };
 
@@ -169,7 +169,7 @@ impl<'a> Parser<'a> {
 
     fn parse_include(&mut self) -> Statement {
         self.bump();
-        self.expect(&IDENT(Rc::new("import".into_string())));
+        self.expect(&Token::IDENT(rcstr("import")));
         let path = self.parse_path();
 
         Statement::new(StatementInclude(path), self.lexer.get_source())
@@ -177,24 +177,26 @@ impl<'a> Parser<'a> {
 
     fn parse_label_def(&mut self) -> Statement {
         let label = self.parse_ident();
-        self.expect(&COLON);
+        self.expect(&Token::COLON);
 
         Statement::new(StatementLabel(label), self.lexer.get_source())
     }
 
     fn parse_constant_def(&mut self) -> Statement {
         let name = self.parse_constant();
-        self.expect(&EQ);
+        self.expect(&Token::EQ);
         let value = self.parse_argument();
 
         Statement::new(StatementConst(name, value), self.lexer.get_source())
     }
 
     fn parse_operation(&mut self) -> Statement {
-        let mn = match self.token {
-            MNEMONIC(mn) => Mnemonic(mn),
-            _ => self.unexpected_token(&self.token, Some("a mnemonic"))
+        let mn = if let Token::MNEMONIC(mn) = self.token {
+            Mnemonic(mn)
+        } else {
+            self.unexpected_token(&self.token, Some("a mnemonic"))
         };
+
         self.bump();
 
         let mut args = vec![];
@@ -206,31 +208,32 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_macro(&mut self) -> Statement {
-        self.expect(&AT);
+        self.expect(&Token::AT);
         let name = self.parse_ident();
-        self.expect(&LPAREN);
+
+        self.expect(&Token::LPAREN);
 
         let mut args = vec![];
-        if self.token != RPAREN {
+        if self.token != Token::RPAREN {
             loop {
                 args.push(self.parse_macro_argument());
-                if !self.eat(&COMMA) {
+                if !self.eat(&Token::COMMA) {
                     break
                 }
             }
         }
-        self.expect(&RPAREN);
+        self.expect(&Token::RPAREN);
 
         Statement::new(StatementMacro(name, args), self.lexer.get_source())
     }
 
     fn parse_statement(&mut self) -> Statement {
         match self.token {
-            HASH => self.parse_include(),
-            DOLLAR => self.parse_constant_def(),
-            IDENT(_) => self.parse_label_def(),
-            MNEMONIC(_) => self.parse_operation(),
-            AT => self.parse_macro(),
+            Token::HASH        => self.parse_include(),
+            Token::DOLLAR      => self.parse_constant_def(),
+            Token::IDENT(_)    => self.parse_label_def(),
+            Token::MNEMONIC(_) => self.parse_operation(),
+            Token::AT          => self.parse_macro(),
 
             ref tok => self.unexpected_token(tok, Some("a statement"))
         }
@@ -241,8 +244,8 @@ impl<'a> Parser<'a> {
 mod tests {
     use std::rc::Rc;
 
-    use assembler::dummy_source;
-    use assembler::lexer::*;
+    use assembler::{rcstr, dummy_source};
+    use assembler::lexer::Token::*;
     use assembler::ast::*;
 
     use super::*;
@@ -255,14 +258,14 @@ mod tests {
     fn test_statements() {
         assert_eq!(
             parse(
-                vec![HASH, IDENT(rcstr!("import")), PATH(rcstr!("as/d")),
+                vec![HASH, IDENT(rcstr("import")), PATH(rcstr("as/d")),
                      MNEMONIC(from_str("HALT").unwrap())],
                 |p| p.parse()
             ),
             vec![
                 Statement::new(
                     StatementInclude(
-                        Path(rcstr!("as/d"))
+                        IPath::from_str("as/d")
                     ),
                     dummy_source()
                 ),
@@ -280,11 +283,11 @@ mod tests {
     #[test]
     fn test_include() {
         assert_eq!(
-            parse(vec![HASH, IDENT(rcstr!("import")), PATH(rcstr!("as/d"))],
+            parse(vec![HASH, IDENT(rcstr("import")), PATH(rcstr("as/d"))],
                   |p| p.parse_statement()),
             Statement::new(
                 StatementInclude(
-                    Path(rcstr!("as/d"))
+                    IPath::from_str("as/d")
                 ),
                 dummy_source()
             )
@@ -294,11 +297,11 @@ mod tests {
     #[test]
     fn test_label_def() {
         assert_eq!(
-            parse(vec![IDENT(rcstr!("lbl")), COLON],
+            parse(vec![IDENT(rcstr("lbl")), COLON],
                   |p| p.parse_statement()),
             Statement::new(
                 StatementLabel(
-                    Ident(rcstr!("lbl"))
+                    Ident::from_str("lbl")
                 ),
                 dummy_source()
             )
@@ -308,11 +311,11 @@ mod tests {
     #[test]
     fn test_const_def() {
         assert_eq!(
-            parse(vec![DOLLAR, IDENT(rcstr!("c")), EQ, INTEGER(0)],
+            parse(vec![DOLLAR, IDENT(rcstr("c")), EQ, INTEGER(0)],
                   |p| p.parse_statement()),
             Statement::new(
                 StatementConst(
-                    Ident(rcstr!("c")),
+                    Ident::from_str("c"),
                     Argument::new(
                         ArgumentLiteral(0),
                         dummy_source()
@@ -346,12 +349,12 @@ mod tests {
     #[test]
     fn test_macro() {
         assert_eq!(
-            parse(vec![AT, IDENT(rcstr!("macro")),
+            parse(vec![AT, IDENT(rcstr("macro")),
                        LPAREN, INTEGER(0), COMMA, INTEGER(0), RPAREN],
                   |p| p.parse_statement()),
             Statement::new(
                 StatementMacro(
-                    Ident(rcstr!("macro")),
+                    Ident::from_str("macro"),
                     vec![
                         MacroArgument::new(
                             MacroArgArgument(
@@ -417,11 +420,11 @@ mod tests {
     #[test]
     fn test_const() {
         assert_eq!(
-            parse(vec![DOLLAR, IDENT(rcstr!("asd"))],
+            parse(vec![DOLLAR, IDENT(rcstr("asd"))],
                   |p| p.parse_argument()),
             Argument::new(
                 ArgumentConst(
-                    Ident(rcstr!("asd"))
+                    Ident::from_str("asd")
                 ),
                 dummy_source()
             )
@@ -431,11 +434,11 @@ mod tests {
     #[test]
     fn test_label() {
         assert_eq!(
-            parse(vec![COLON, IDENT(rcstr!("asd"))],
+            parse(vec![COLON, IDENT(rcstr("asd"))],
                   |p| p.parse_argument()),
             Argument::new(
                 ArgumentLabel(
-                    Ident(rcstr!("asd"))
+                    Ident::from_str("asd")
                 ),
                 dummy_source()
             )
@@ -474,11 +477,11 @@ mod tests {
     #[test]
     fn test_macro_arg_ident() {
         assert_eq!(
-            parse(vec![IDENT(rcstr!("asd"))],
+            parse(vec![IDENT(rcstr("asd"))],
                   |p| p.parse_macro_argument()),
             MacroArgument::new(
                 MacroArgIdent(
-                    Ident(rcstr!("asd"))
+                    Ident::from_str("asd")
                 ),
                 dummy_source()
             )
@@ -489,7 +492,7 @@ mod tests {
     fn test_op_and_const() {
         assert_eq!(
             parse(vec![MNEMONIC(from_str("HALT").unwrap()),
-                       DOLLAR, IDENT(rcstr!("c")), EQ, INTEGER(0)],
+                       DOLLAR, IDENT(rcstr("c")), EQ, INTEGER(0)],
                   |p| p.parse()),
             vec![
                 Statement::new(
@@ -501,7 +504,7 @@ mod tests {
                 ),
                 Statement::new(
                     StatementConst(
-                        Ident(rcstr!("c")),
+                        Ident::from_str("c"),
                         Argument::new(
                             ArgumentLiteral(0),
                             dummy_source()

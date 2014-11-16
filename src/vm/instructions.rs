@@ -4,7 +4,6 @@ use std::rand::distributions::Range as RandRange;
 use std::rand;
 
 
-// TODO: Implement Show trait?
 pub trait Instruction {
     fn execute(&self, &[u8], &[u8]) -> StateChange;
     fn argc(&self) -> uint;

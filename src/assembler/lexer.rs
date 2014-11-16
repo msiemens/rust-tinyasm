@@ -1,11 +1,31 @@
+use std::fmt;
 use std::rc::Rc;
 
-use assembler::{SharedString, SourceLocation, dummy_source};
 use assembler::instructions::Instructions;
-use assembler::util::fatal;
+use assembler::util::{fatal, rcstr, SharedString};
 
 
-#[deriving(Clone, PartialEq, Eq, Show)]
+#[deriving(PartialEq, Eq, Clone)]
+pub struct SourceLocation {
+    pub filename: String,
+    pub lineno: uint
+}
+
+impl fmt::Show for SourceLocation {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::FormatError> {
+        write!(f, "{}:{}", self.filename, self.lineno)
+    }
+}
+
+pub fn dummy_source() -> SourceLocation {
+    SourceLocation {
+        filename: "<input>".into_string(),
+        lineno: 0
+    }
+}
+
+
+#[deriving(Clone, PartialEq, Eq)]
 pub enum Token {
     HASH,
     COLON,
@@ -32,6 +52,34 @@ pub enum Token {
     //UNKNOWN(String)
 }
 
+impl fmt::Show for Token {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Token::HASH       => write!(f, "#"),
+            Token::COLON      => write!(f, ":"),
+            Token::DOLLAR     => write!(f, "$"),
+            Token::AT         => write!(f, "@"),
+            Token::COMMA      => write!(f, ","),
+            Token::EQ         => write!(f, "="),
+            Token::UNDERSCORE => write!(f, "_"),
+
+            Token::LPAREN     => write!(f, "("),
+            Token::RPAREN     => write!(f, ")"),
+            Token::LBRACKET   => write!(f, "["),
+            Token::RBRACKET   => write!(f, "]"),
+
+            Token::MNEMONIC(instr)  => write!(f, "{}", instr),
+            Token::IDENT(ref ident) => write!(f, "{}", ident),
+            Token::INTEGER(i)       => write!(f, "{}", i),
+            Token::CHAR(c)          => write!(f, "{:c}", c as char),
+            Token::PATH(ref path)   => write!(f, "{}", path),
+
+            Token::EOF         => write!(f, "EOF"),
+            Token::PLACEHOLDER => write!(f, "PLACEHOLDER")
+        }
+    }
+}
+
 
 pub trait Lexer {
     fn get_source(&self) -> SourceLocation;
@@ -46,7 +94,7 @@ pub struct FileLexer<'a> {
     len: uint,
     pos: uint,
     curr: Option<char>,
-    curr_line: uint
+    lineno: uint
 }
 
 impl<'a> FileLexer<'a> {
@@ -57,9 +105,15 @@ impl<'a> FileLexer<'a> {
             len: source.len(),
             pos: 0,
             curr: Some(source.char_at(0)),
-            curr_line: 1
+            lineno: 1
         }
     }
+
+
+    fn fatal(&self, msg: String) -> ! {
+        fatal(msg, &self.get_source())
+    }
+
 
     fn is_eof(&self) -> bool {
         self.curr.is_none()
@@ -103,8 +157,8 @@ impl<'a> FileLexer<'a> {
                 None => "EOF".into_string()
             };
 
-            fatal(format!("Expected `{}`, found `{}`",
-                          expect_str, found_str), &self.get_source())
+            self.fatal(format!("Expected `{}`, found `{}`",
+                               expect_str, found_str))
         }
 
         self.bump();
@@ -117,7 +171,7 @@ impl<'a> FileLexer<'a> {
                 c.escape_default(|r| repr.push(r));
                 Rc::new(String::from_chars(repr[]))
             },
-            None => Rc::new("EOF".into_string())
+            None => rcstr("EOF")
         }
     }
 
@@ -153,13 +207,13 @@ impl<'a> FileLexer<'a> {
             c.is_alphabetic() && c.is_uppercase()
         });
 
-        let mnemonic = match from_str(mnemonic[]) {
-            Some(m) => m,
-            None => fatal(format!("invalid mnemonic: {}", mnemonic),
-                          &self.get_source())
+        let mnemonic = if let Some(m) = from_str(mnemonic[]) {
+            m
+        } else {
+            self.fatal(format!("invalid mnemonic: {}", mnemonic))
         };
 
-        MNEMONIC(mnemonic)
+        Token::MNEMONIC(mnemonic)
     }
 
     fn tokenize_ident(&mut self) -> Token {
@@ -169,26 +223,25 @@ impl<'a> FileLexer<'a> {
                 || *c == '_'
         });
 
-        IDENT(ident)
+        Token::IDENT(ident)
     }
 
     fn tokenize_digit(&mut self) -> Token {
         let integer = self.collect(|c| c.is_digit());
 
-        let integer = match from_str(integer[]) {
-            Some(m) => m,
-            None => fatal(format!("invalid integer: {}", integer),
-                          &self.get_source())
+        let integer = if let Some(m) = from_str(integer[]) {
+            m
+        } else {
+            self.fatal(format!("invalid integer: {}", integer))
         };
 
-        INTEGER(integer)
+        Token::INTEGER(integer)
     }
 
     fn tokenize_char(&mut self) -> Token {
         self.bump();  // '\'' matched, move on
         let c = self.curr.unwrap_or_else(|| {
-            fatal(format!("expected a char, found EOF"),
-                  &self.get_source());
+            self.fatal(format!("expected a char, found EOF"));
         });
 
         let tok = if c == '\\' {
@@ -196,18 +249,15 @@ impl<'a> FileLexer<'a> {
             //match self.iter.next_char() {
             self.bump();
             match self.curr {
-                Some('n') => CHAR(10),
-                Some('\'') => CHAR(39),
-                Some(c) => fatal(format!("unsupported or invalid escape sequence: \\{}", c),
-                                 &self.get_source()),
-                None => fatal(format!("expected escaped char, found EOF"),
-                              &self.get_source())
+                Some('n')  => Token::CHAR(10),
+                Some('\'') => Token::CHAR(39),
+                Some(c) => self.fatal(format!("unsupported or invalid escape sequence: \\{}", c)),
+                None => self.fatal(format!("expected escaped char, found EOF"))
             }
         } else if c.is_whitespace() || c.is_alphanumeric() {
-            CHAR(c as u8)
+            Token::CHAR(c as u8)
         } else {
-            fatal(format!("invalid character: {}", c),
-                  &self.get_source())
+            self.fatal(format!("invalid character: {}", c))
         };
         self.bump();
 
@@ -224,28 +274,28 @@ impl<'a> FileLexer<'a> {
         // Match closing '>'
         self.expect('>');
 
-        PATH(path)
+        Token::PATH(path)
     }
 
     /// Read the next token and return it
     fn read_token(&mut self) -> Option<Token> {
         let c = match self.curr {
             Some(c) => c,
-            None => { return Some(EOF) }
+            None => return Some(EOF)
         };
 
         let token = match c {
-            '#' => { self.bump(); HASH },
-            ':' => { self.bump(); COLON },
-            '$' => { self.bump(); DOLLAR },
-            '@' => { self.bump(); AT },
-            ',' => { self.bump(); COMMA },
-            '=' => { self.bump(); EQ },
-            '_' => { self.bump(); UNDERSCORE },
-            '(' => { self.bump(); LPAREN },
-            ')' => { self.bump(); RPAREN },
-            '[' => { self.bump(); LBRACKET },
-            ']' => { self.bump(); RBRACKET },
+            '#' => { self.bump(); Token::HASH },
+            ':' => { self.bump(); Token::COLON },
+            '$' => { self.bump(); Token::DOLLAR },
+            '@' => { self.bump(); Token::AT },
+            ',' => { self.bump(); Token::COMMA },
+            '=' => { self.bump(); Token::EQ },
+            '_' => { self.bump(); Token::UNDERSCORE },
+            '(' => { self.bump(); Token::LPAREN },
+            ')' => { self.bump(); Token::RPAREN },
+            '[' => { self.bump(); Token::LBRACKET },
+            ']' => { self.bump(); Token::RBRACKET },
 
             c if c.is_alphabetic() && c.is_uppercase() => {
                 self.tokenize_mnemonic()
@@ -253,34 +303,22 @@ impl<'a> FileLexer<'a> {
             c if c.is_alphabetic() && c.is_lowercase() => {
                 self.tokenize_ident()
             },
-            c if c.is_digit() => {
-                self.tokenize_digit()
-            },
-            '\'' => {
-                self.tokenize_char()
-            },
-            '<' => {
-                self.tokenize_path()
-            },
+            c if c.is_digit() => self.tokenize_digit(),
+            '\''              => self.tokenize_char(),
+            '<'               => self.tokenize_path(),
 
             ';' => {
                 self.eat_all(|c| *c != '\n');
                 return None;
             },
             c if c.is_whitespace() => {
-                if c == '\n' {
-                    self.curr_line += 1;
-                } else if c == '\r' && self.nextch_is('\n') {
-                    self.curr_line += 1;
-                    self.bump();  // Skip \n
-                }
+                if c == '\n' { self.lineno += 1; }
 
                 self.bump();
                 return None;
             },
             c => {
-                fatal(format!("unknown token: {}", c),
-                      &self.get_source())
+                self.fatal(format!("unknown token: {}", c))
                 // UNKNOWN(format!("{}", c).into_string())
             }
         };
@@ -293,13 +331,13 @@ impl<'a> Lexer for FileLexer<'a> {
     fn get_source(&self) -> SourceLocation {
         SourceLocation {
             filename: self.file.into_string(),
-            lineno: self.curr_line
+            lineno: self.lineno
         }
     }
 
     fn next_token(&mut self) -> Token {
         if self.is_eof() {
-            EOF
+            Token::EOF
         } else {
             let mut tok = self.read_token();
             while tok.is_none() {
@@ -319,10 +357,11 @@ impl<'a> Lexer for FileLexer<'a> {
         //       access `self.iter` inside the body because it's borrowed.
         while !self.is_eof() {
             debug!("Processing {}", self.curr)
-            match self.read_token() {
-                Some(t) => tokens.push(t),
-                None => {}
+
+            if let Some(t) = self.read_token() {
+                tokens.push(t);
             }
+
             debug!("So far: {}", tokens)
         }
 
@@ -339,7 +378,7 @@ impl Lexer for Vec<Token> {
     fn next_token(&mut self) -> Token {
         match self.remove(0) {
             Some(tok) => tok,
-            None => EOF
+            None => Token::EOF
         }
     }
 
@@ -356,7 +395,9 @@ impl Lexer for Vec<Token> {
 mod tests {
     use std::rc::Rc;
 
-    use super::*;
+    use assembler::rcstr;
+    use super::tokenize;
+    use super::Token::*;
 
     fn tokenize(src: &'static str) -> Vec<Token> {
         FileLexer::new(src, "<test>").tokenize()
@@ -371,7 +412,7 @@ mod tests {
     #[test]
     fn test_ident() {
         assert_eq!(tokenize("abc"),
-                   vec![IDENT(rcstr!("abc"))]);
+                   vec![IDENT(rcstr("abc"))]);
     }
 
     #[test]
@@ -395,7 +436,7 @@ mod tests {
     #[test]
     fn test_path() {
         assert_eq!(tokenize("<asd>"),
-                   vec![PATH(rcstr!("asd"))]);
+                   vec![PATH(rcstr("asd"))]);
     }
 
     #[test]
@@ -420,10 +461,10 @@ mod tests {
     fn test_line_counter() {
         let mut lx = FileLexer::new("MOV\nMOV", "<test>");
         lx.tokenize();
-        assert_eq!(lx.curr_line, 2);
+        assert_eq!(lx.lineno, 2);
 
         let mut lx = FileLexer::new("MOV\r\nMOV", "<test>");
         lx.tokenize();
-        assert_eq!(lx.curr_line, 2);
+        assert_eq!(lx.lineno, 2);
     }
 }

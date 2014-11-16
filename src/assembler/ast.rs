@@ -1,7 +1,8 @@
 use std::fmt;
 
 use assembler::instructions::Instructions;
-use super::{SharedString, SourceLocation};
+use assembler::lexer::SourceLocation;
+use assembler::util::{SharedString, rcstr, rcstring};
 
 
 macro_rules! define(
@@ -37,7 +38,7 @@ macro_rules! define(
 
 define!(
 Statement -> Statement_:
-    StatementInclude(Path),
+    StatementInclude(IPath),
     StatementLabel(Ident),
     StatementConst(Ident, Argument),
     StatementOperation(Mnemonic, Vec<Argument>),
@@ -118,16 +119,27 @@ impl fmt::Show for MacroArgument_ {
 pub struct Ident(pub SharedString);
 
 impl Ident {
-    pub fn clone(&self) -> Ident {
+    pub fn from_str(s: &'static str) -> Ident {
+        Ident(rcstr(s))
+    }
+
+    pub fn from_string(s: String) -> Ident {
+        Ident(rcstring(s))
+    }
+
+    pub fn as_str(&self) -> SharedString {
         let Ident(ref s) = *self;
-        Ident(s.clone())
+        s.clone()
+    }
+
+    pub fn clone(&self) -> Ident {
+        Ident(self.as_str())
     }
 }
 
 impl fmt::Show for Ident {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let Ident(ref ident) = *self;
-        write!(f, "{}", ident)
+        write!(f, "{}", self.as_str())
     }
 }
 
@@ -144,11 +156,26 @@ impl fmt::Show for Mnemonic {
 
 
 #[deriving(PartialEq, Eq, Clone)]
-pub struct Path(pub SharedString);
+pub struct IPath(pub SharedString);
 
-impl fmt::Show for Path {
+impl IPath {
+    pub fn from_str(s: &'static str) -> IPath {
+        IPath(rcstr(s))
+    }
+
+    pub fn from_string(s: String) -> IPath {
+        IPath(rcstring(s))
+    }
+
+    pub fn as_str(&self) -> SharedString {
+        let IPath(ref p) = *self;
+        p.clone()
+    }
+}
+
+impl fmt::Show for IPath {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let Path(ref path) = *self;
+        let IPath(ref path) = *self;
         write!(f, "<{}>", path)
     }
 }

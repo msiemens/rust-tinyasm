@@ -14,8 +14,6 @@
 
 # EBNF-like grammar
 
-    # TODO: How much lookahead do we need? (What is n in LL(n))?
-
     # AST
     programm:   comment | (statement comment?)*
     statement:  include | label_def | const_def | operation | macro

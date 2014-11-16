@@ -1,4 +1,4 @@
-#![feature(phase, macro_rules, slicing_syntax, while_let, globs)]
+#![feature(phase, macro_rules, slicing_syntax, while_let, if_let, globs)]
 
 extern crate term;
 extern crate test;
@@ -16,7 +16,7 @@ use docopt::Docopt;
 
 
 mod assembler;
-#[cfg(not(test))] mod vm;  // TODO: Tests
+mod vm;
 
 
 docopt!(Args deriving Show, "

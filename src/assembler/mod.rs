@@ -1,52 +1,20 @@
-// FIXME: Line numbers in SourceLocation
+// TODO: Add tests for syntax_ext
+// TODO: Output hex by lines
+// TODO: Let all error messages start with a lowercase letter
 
 use std::io::{Open, Write};
-use std::fmt::{Show, Formatter, FormatError};
 #[cfg(not(test))] use std::io::File;
-use std::rc::Rc;
 
-#[cfg(not(test))]
-use super::Args;
+#[cfg(not(test))] use super::Args;
 
 
-macro_rules! rcstr(
-    ($s:expr) => (
-        Rc::new($s.into_string())
-    )
-)
-
-
+mod util;
 mod instructions;
 mod ast;
 mod lexer;
 mod parser;
-mod codegen;
 mod syntax_ext;
-mod util;
-
-
-
-type SharedString = Rc<String>;
-
-#[deriving(PartialEq, Eq, Clone)]
-pub struct SourceLocation {
-    pub filename: String,
-    pub lineno: uint
-}
-
-impl Show for SourceLocation {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
-        write!(f, "{}:{}", self.filename, self.lineno)
-    }
-}
-
-pub fn dummy_source() -> SourceLocation {
-    SourceLocation {
-        filename: "<input>".into_string(),
-        lineno: 0
-    }
-}
-
+mod codegen;
 
 
 #[cfg(not(test))]

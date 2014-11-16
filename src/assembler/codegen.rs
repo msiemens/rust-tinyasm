@@ -17,8 +17,7 @@ pub fn generate_binary(ast: Vec<Statement>) -> Vec<u8> {
                     match arg.node {
                         ArgumentLiteral(_) | ArgumentChar(_) => Literal,
                         ArgumentAddress(_) => Address,
-                        _ => fatal(format!("Invalid argument: {}", arg),
-                                   &stmt.location)
+                        _ => fatal!("Unprocessed argument: {}", arg @ arg)
                     }
                 }).collect();
 
@@ -27,14 +26,14 @@ pub fn generate_binary(ast: Vec<Statement>) -> Vec<u8> {
                 let op = instr_class.iter().find(|op| {
                     op.args == arg_types
                 }).unwrap_or_else(|| {
-                    fatal(format!("Invalid arguments for {}: got {}, allowed: {}",
-                                  instr, arg_types,
-                                  instr_class.iter()
-                                    .map(|ref i| i.args.clone())
-                                    .map(|args| format!("{}", args))
-                                    .collect::<Vec<_>>()
-                                    .connect(" or ")),
-                          &stmt.location)
+                    let allowed_arg_types = instr_class.iter()
+                        .map(|ref i| i.args.clone())
+                        .map(|args| format!("{}", args))
+                        .collect::<Vec<_>>()
+                        .connect(" or ");
+
+                    fatal!("Invalid arguments for {}: found {}, allowed: {}",
+                           instr, arg_types, allowed_arg_types @ stmt)
                 });
 
                 // Finally, write the opcode
@@ -45,17 +44,14 @@ pub fn generate_binary(ast: Vec<Statement>) -> Vec<u8> {
                     match arg.node {
                         ArgumentLiteral(i) => binary.push(i),
                         ArgumentChar(c) => binary.push(c),
-                        ArgumentAddress(a) => match a {
-                            Some(a) => binary.push(a),
-                            None => panic!("Automem not implemented yet")
-                        },
+                        ArgumentAddress(a) => binary.push(a.unwrap()),
                         // Shouldn't happen as we check this in arg_types
-                        _ => panic!("Invalid argument: {}", arg)
+                        _ => fatal!("Unprocessed argument: {}", arg @ arg)
                     }
                 }
 
             },
-            _ => fatal(format!("Not an operation: {}", stmt), &stmt.location)
+            _ => fatal!("Not an operation: {}", stmt @ stmt)
         }
     }
 
