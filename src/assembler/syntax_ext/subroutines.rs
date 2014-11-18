@@ -1,11 +1,14 @@
 use std::collections::HashMap;
 
-use assembler::ast::*;
+use assembler::ast::{AST, Statement, Argument, MacroArgument, MacroArgument_,
+                     Ident, Mnemonic};
 use assembler::lexer::dummy_source;
 use assembler::util::fatal;
 
+use self::SubroutineState::*;
 
-pub fn expand(ast: &mut Vec<Statement>) {
+
+pub fn expand(ast: &mut AST) {
     SubroutineExpander {
         ast: ast,
         routines: HashMap::new()
@@ -18,19 +21,19 @@ enum SubroutineState {
     SubroutineStart(Ident),
     InSubroutine,
     SubroutineEnd,
-    SubroutineCall(Ident, Vec<MacroArgument>),
+    SubroutineCall(Ident, Vec<MacroArgument_>),
     NotInSubroutine
 }
 
 struct SubroutineExpander<'a> {
-    ast: &'a mut Vec<Statement>,
+    ast: &'a mut AST,
     routines: HashMap<Ident, uint>
 }
 
 impl<'a> SubroutineExpander<'a> {
     fn collect_routines(&mut self) {
         for stmt in self.ast.iter() {
-            let (ident, args) = if let StatementMacro(ref ident, ref args) = stmt.node {
+            let (ident, args) = if let Statement::Macro(ref ident, ref args) = stmt.node {
                 (ident.clone(), args)
             } else {
                 continue
@@ -39,19 +42,19 @@ impl<'a> SubroutineExpander<'a> {
 
             if ident.as_str()[] == "start" {
                 if args.len() != 2 {
-                    fatal!("Invalid number of arguments for @start: {}",
+                    fatal!("Invalid number of Argument::s for @start: {}",
                            args.len() @ stmt)
                 }
 
-                let name = if let MacroArgIdent(ref name) = args[0].node {
+                let name = if let MacroArgument::Ident(ref name) = args[0].node {
                     name.clone()
                 } else {
                     fatal!("Expected subroutine name, got {}",
                            args[0] @ stmt)
                 };
 
-                let argc = if let MacroArgArgument(ref arg) = args[1].node {
-                    if let ArgumentLiteral(argc) = arg.node {
+                let argc = if let MacroArgument::Argument(ref arg) = args[1].node {
+                    if let Argument::Literal(argc) = arg.node {
                         argc as uint
                     } else {
                         fatal!("Expected argument count, got {}",
@@ -72,10 +75,10 @@ impl<'a> SubroutineExpander<'a> {
     fn build_preamble(&mut self) {
         self.ast.insert(0, Statement::new(
             // $return = [_]
-            StatementConst(
+            Statement::Const(
                 Ident::from_str("return"),
                 Argument::new(
-                    ArgumentAddress(None),
+                    Argument::Address(None),
                     dummy_source()
                 )
             ),
@@ -83,10 +86,10 @@ impl<'a> SubroutineExpander<'a> {
         ));
         self.ast.insert(1, Statement::new(
             // $jump_back = [_]
-            StatementConst(
+            Statement::Const(
                 Ident::from_str("jump_back"),
                 Argument::new(
-                    ArgumentAddress(None),
+                    Argument::Address(None),
                     dummy_source()
                 )
             ),
@@ -96,10 +99,10 @@ impl<'a> SubroutineExpander<'a> {
         for i in range(0, *self.routines.values().max().unwrap()) {
             self.ast.insert(i + 2, Statement::new(
                 // $arg{i} = [_]
-                StatementConst(
+                Statement::Const(
                     Ident::from_string(format!("arg{}", i)),
                     Argument::new(
-                        ArgumentAddress(None),
+                        Argument::Address(None),
                         dummy_source()
                     )
                 ),
@@ -119,7 +122,7 @@ impl<'a> SubroutineExpander<'a> {
             // TODO: If let-ify
 
             state = match self.ast[i].node {
-                StatementMacro(ref ident, ref args) => {
+                Statement::Macro(ref ident, ref args) => {
                     match ident.as_str()[] {
                         "start" => {
                             if state == InSubroutine {
@@ -128,7 +131,7 @@ impl<'a> SubroutineExpander<'a> {
                             }
 
                             // Get subroutine name
-                            let ident = if let MacroArgIdent(ref ident) = args[0].node {
+                            let ident = if let MacroArgument::Ident(ref ident) = args[0].node {
                                 ident.clone()
                             } else {
                                 fatal!("Expected subroutine name, found `{}`",
@@ -139,7 +142,7 @@ impl<'a> SubroutineExpander<'a> {
                         },
                         "end" => {
                             if args.len() > 0 {
-                                fatal!("@end takes no arguments" @ args[0]);
+                                fatal!("@end takes no Argument::s" @ args[0]);
                             }
 
                             SubroutineEnd
@@ -151,7 +154,7 @@ impl<'a> SubroutineExpander<'a> {
                             }
 
                             // Get subroutine name
-                            let ident = if let MacroArgIdent(ref ident) = args[0].node {
+                            let ident = if let MacroArgument::Ident(ref ident) = args[0].node {
                                 ident.clone()
                             } else {
                                 fatal!("Expected subroutine name, found `{}`",
@@ -165,12 +168,12 @@ impl<'a> SubroutineExpander<'a> {
                             });
 
                             if args.len() - 1 != routine_argc {
-                                fatal!("Wrong argument count: found {} arguments, expected {}",
+                                fatal!("Wrong argument count: found {} Argument::s, expected {}",
                                        args.len() - 1, routine_argc
                                        @ args[0]);
                             }
 
-                            // Get arguments (cloned)
+                            // Get Argument::s (cloned)
                             let args: Vec<_> = args[1..].iter()
                                 .map(|a| a.clone())
                                 .collect();
@@ -188,22 +191,22 @@ impl<'a> SubroutineExpander<'a> {
                     // Build subroutine preamble
                     self.ast[i] = Statement::new(
                         // ident:
-                        StatementLabel(ident),
+                        Statement::Label(ident),
                         loc.clone()
                     );
                     self.ast.insert(i + 1, Statement::new(
                         // MOV $return 0
-                        StatementOperation(
+                        Statement::Operation(
                             Mnemonic(from_str("MOV").unwrap()),
                             vec![
                                 Argument::new(
-                                    ArgumentConst(
+                                    Argument::Const(
                                         Ident::from_str("return")
                                     ),
                                     loc.clone()
                                 ),
                                 Argument::new(
-                                    ArgumentLiteral(0),
+                                    Argument::Literal(0),
                                     loc.clone()
                                 )
                             ]
@@ -218,11 +221,11 @@ impl<'a> SubroutineExpander<'a> {
                     // Build subroutine epilogue
                     self.ast[i] = Statement::new(
                         // JMP $jump_back
-                        StatementOperation(
+                        Statement::Operation(
                             Mnemonic(from_str("JMP").unwrap()),
                             vec![
                                 Argument::new(
-                                    ArgumentConst(
+                                    Argument::Const(
                                         Ident::from_str("jump_back")
                                     ),
                                     loc.clone()
@@ -238,21 +241,21 @@ impl<'a> SubroutineExpander<'a> {
                 SubroutineCall(name, args) => {
                     self.ast.remove(i);
 
-                    // Build arguments
+                    // Build Argument::s
                     for j in range(0, args.len()) {
                         let arg = match args[j].node {
-                            MacroArgArgument(ref arg) => arg,
-                            MacroArgIdent(ref ident) => fatal!("Expected argument, got `{}`",
-                                                               ident @ args[j])
+                            MacroArgument::Argument(ref arg) => arg,
+                            MacroArgument::Ident(ref ident) => fatal!("Expected argument, got `{}`",
+                                                                      ident @ args[j])
                         };
 
                         self.ast.insert(i + j, Statement::new(
-                            StatementOperation(
+                            Statement::Operation(
                                 // MOV arg{i} {arg_i}
                                 Mnemonic(from_str("MOV").unwrap()),
                                 vec![
                                     Argument::new(
-                                        ArgumentConst(
+                                        Argument::Const(
                                             Ident::from_string(format!("arg{}", j))
                                         ),
                                         loc.clone()
@@ -266,18 +269,18 @@ impl<'a> SubroutineExpander<'a> {
 
                     // Set jumpback
                     self.ast.insert(i + args.len(), Statement::new(
-                        StatementOperation(
+                        Statement::Operation(
                             // MOV $jump_back :ret{i}
                             Mnemonic(from_str("MOV").unwrap()),
                             vec![
                                 Argument::new(
-                                    ArgumentConst(
+                                    Argument::Const(
                                         Ident::from_str("jump_back")
                                     ),
                                     loc.clone()
                                 ),
                                 Argument::new(
-                                    ArgumentLabel(
+                                    Argument::Label(
                                         Ident::from_string(format!("ret{}", i))
                                     ),
                                     loc.clone()
@@ -289,12 +292,12 @@ impl<'a> SubroutineExpander<'a> {
 
                     // Jump to function
                     self.ast.insert(i + args.len() + 1, Statement::new(
-                        StatementOperation(
+                        Statement::Operation(
                             // JMP :{name}
                             Mnemonic(from_str("JMP").unwrap()),
                             vec![
                                 Argument::new(
-                                    ArgumentLabel(
+                                    Argument::Label(
                                         name
                                     ),
                                     loc.clone()
@@ -307,7 +310,7 @@ impl<'a> SubroutineExpander<'a> {
                     // Add label where to continue
                     self.ast.insert(i + args.len() + 2, Statement::new(
                         // ret{i}:
-                        StatementLabel(Ident::from_string(format!("ret{}", i))),
+                        Statement::Label(Ident::from_string(format!("ret{}", i))),
                         loc.clone()
                     ));
 
@@ -339,7 +342,7 @@ impl<'a> SubroutineExpander<'a> {
         // Pass 3: Remove macro statements
         self.ast.retain(|stmt| {
             match stmt.node {
-                StatementMacro(..) => {
+                Statement::Macro(..) => {
                     false
                 },
                 _ => true

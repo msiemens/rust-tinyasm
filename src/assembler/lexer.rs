@@ -281,7 +281,7 @@ impl<'a> FileLexer<'a> {
     fn read_token(&mut self) -> Option<Token> {
         let c = match self.curr {
             Some(c) => c,
-            None => return Some(EOF)
+            None => return Some(Token::EOF)
         };
 
         let token = match c {

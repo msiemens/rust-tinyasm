@@ -5,31 +5,34 @@ use assembler::lexer::SourceLocation;
 use assembler::util::{SharedString, rcstr, rcstring};
 
 
+pub type AST = Vec<Statement_>;
+
+// FIXME: Find better wrapper names
 macro_rules! define(
-    ( $name:ident -> $inner:ident : $( $variants:ident ( $( $arg:ty ),* ) ),* ) => {
+    ( $name:ident -> $wrapper:ident : $( $variants:ident ( $( $arg:ty ),* ) ),* ) => {
         #[deriving(PartialEq, Eq, Clone)]
-        pub struct $name {
-            pub node: $inner,
+        pub struct $wrapper {
+            pub node: $name,
             pub location: SourceLocation
         }
 
         impl $name {
-            pub fn new(stmt: $inner, location: SourceLocation) -> $name {
-                $name {
+            pub fn new(stmt: $name, location: SourceLocation) -> $wrapper {
+                $wrapper {
                     node: stmt,
                     location: location
                 }
             }
         }
 
-        impl fmt::Show for $name {
+        impl fmt::Show for $wrapper {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 write!(f, "{}", self.node)
             }
         }
 
         #[deriving(PartialEq, Eq, Clone)]
-        pub enum $inner {
+        pub enum $name {
             $( $variants ( $( $arg ),* ) ),*
         }
     };
@@ -38,29 +41,29 @@ macro_rules! define(
 
 define!(
 Statement -> Statement_:
-    StatementInclude(IPath),
-    StatementLabel(Ident),
-    StatementConst(Ident, Argument),
-    StatementOperation(Mnemonic, Vec<Argument>),
-    StatementMacro(Ident, Vec<MacroArgument>)
+    Include(IPath),
+    Label(Ident),
+    Const(Ident, Argument_),
+    Operation(Mnemonic, Vec<Argument_>),
+    Macro(Ident, Vec<MacroArgument_>)
 )
 
-impl fmt::Show for Statement_ {
+impl fmt::Show for Statement {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            StatementInclude(ref path) => write!(f, "#include {}", path),
-            StatementLabel(ref name)  => write!(f, "{}:", name),
-            StatementConst(ref name, ref value) => {
+            Statement::Include(ref path) => write!(f, "#include {}", path),
+            Statement::Label(ref name)   => write!(f, "{}:", name),
+            Statement::Const(ref name, ref value) => {
                 write!(f, "${} = {}", name, value)
             },
-            StatementOperation(ref mnem, ref args) => {
+            Statement::Operation(ref mnem, ref args) => {
                 try!(write!(f, "{}", mnem));
                 for arg in args.iter() {
                     try!(write!(f, " {}", arg));
                 }
                 Ok(())
             },
-            StatementMacro(ref name, ref args) => {
+            Statement::Macro(ref name, ref args) => {
                 write!(f, "@{}({})", name,
                        args.iter()
                            .map(|arg| format!("{}", arg))
@@ -74,26 +77,26 @@ impl fmt::Show for Statement_ {
 
 define!(
 Argument -> Argument_:
-    ArgumentLiteral(u8),
-    ArgumentAddress(Option<u8>),
-    ArgumentConst(Ident),
-    ArgumentLabel(Ident),
-    ArgumentChar(u8)
+    Literal(u8),
+    Address(Option<u8>),
+    Const(Ident),
+    Label(Ident),
+    Char(u8)
 )
 
-impl fmt::Show for Argument_ {
+impl fmt::Show for Argument {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            ArgumentLiteral(i) => write!(f, "{}", i),
-            ArgumentAddress(addr) => {
+            Argument::Literal(i) => write!(f, "{}", i),
+            Argument::Address(addr) => {
                 match addr {
                     Some(i) => write!(f, "[{}]", i),
                     None => write!(f, "[_]")
                 }
             },
-            ArgumentConst(ref name) => write!(f, "${}", name),
-            ArgumentLabel(ref name) => write!(f, ":{}", name),
-            ArgumentChar(c) => write!(f, "'{}'", c),
+            Argument::Const(ref name) => write!(f, "${}", name),
+            Argument::Label(ref name) => write!(f, ":{}", name),
+            Argument::Char(c) => write!(f, "'{}'", c),
         }
     }
 }
@@ -101,15 +104,15 @@ impl fmt::Show for Argument_ {
 
 define!(
 MacroArgument -> MacroArgument_:
-    MacroArgArgument(Argument),
-    MacroArgIdent(Ident)
+    Argument(Argument_),
+    Ident(Ident)
 )
 
-impl fmt::Show for MacroArgument_ {
+impl fmt::Show for MacroArgument {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            MacroArgArgument(ref arg) => write!(f, "{}", arg),
-            MacroArgIdent(ref name) => write!(f, "{}", name)
+            MacroArgument::Argument(ref arg) => write!(f, "{}", arg),
+            MacroArgument::Ident(ref name) => write!(f, "{}", name)
         }
     }
 }

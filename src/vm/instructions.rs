@@ -3,6 +3,10 @@ use std::rand::distributions::Sample;
 use std::rand::distributions::Range as RandRange;
 use std::rand;
 
+use self::Argument::*;
+
+pub use self::StateChange::*;
+
 
 pub trait Instruction {
     fn execute(&self, &[u8], &[u8]) -> StateChange;
@@ -54,8 +58,8 @@ macro_rules! make_instruction(
                     .zip(args.iter())
                     .map(|(&ty, &val)| {
                         match ty {
-                            Address => mem[val as uint],
-                            Literal => val
+                            Argument::Address => mem[val as uint],
+                            Argument::Literal => val
                         }
                     }).collect()
             }

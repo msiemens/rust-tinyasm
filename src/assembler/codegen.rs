@@ -1,22 +1,26 @@
-use assembler::instructions::*;
-use assembler::ast::*;
+use assembler::instructions::{INSTRUCTIONS, ArgumentType};
+use assembler::ast::{Statement, Statement_, Argument, Mnemonic};
 use assembler::util::fatal;
 
 
-pub fn generate_binary(ast: Vec<Statement>) -> Vec<u8> {
+pub fn generate_binary(ast: Vec<Statement_>) -> Vec<u8> {
     let mut binary = vec![];
 
     for stmt in ast.iter() {
         match stmt.node {
-            StatementOperation(mnem, ref args) => {
+            Statement::Operation(mnem, ref args) => {
                 // Get the requested mnemonic
                 let Mnemonic(instr) = mnem;
 
                 // Get the argument types we received
                 let arg_types = args.iter().map(|ref arg| {
                     match arg.node {
-                        ArgumentLiteral(_) | ArgumentChar(_) => Literal,
-                        ArgumentAddress(_) => Address,
+                        Argument::Literal(_) | Argument::Char(_) => {
+                            ArgumentType::Literal
+                        },
+                        Argument::Address(_) => {
+                            ArgumentType::Address
+                        },
                         _ => fatal!("Unprocessed argument: {}", arg @ arg)
                     }
                 }).collect();
@@ -42,9 +46,9 @@ pub fn generate_binary(ast: Vec<Statement>) -> Vec<u8> {
                 // Write arguments
                 for arg in args.iter() {
                     match arg.node {
-                        ArgumentLiteral(i) => binary.push(i),
-                        ArgumentChar(c) => binary.push(c),
-                        ArgumentAddress(a) => binary.push(a.unwrap()),
+                        Argument::Literal(i) => binary.push(i),
+                        Argument::Char(c) => binary.push(c),
+                        Argument::Address(a) => binary.push(a.unwrap()),
                         // Shouldn't happen as we check this in arg_types
                         _ => fatal!("Unprocessed argument: {}", arg @ arg)
                     }
@@ -61,7 +65,7 @@ pub fn generate_binary(ast: Vec<Statement>) -> Vec<u8> {
 
 #[cfg(test)]
 mod test {
-    use assembler::ast::*;
+    use assembler::ast::{Statement, Mnemonic};
     use assembler::lexer::dummy_source;
 
     use super::generate_binary;
@@ -71,7 +75,7 @@ mod test {
         assert_eq!(
             generate_binary(vec![
                 Statement::new(
-                    StatementOperation(
+                    Statement::Operation(
                         Mnemonic(from_str("HALT").unwrap()),
                         vec![]
                     ),

@@ -1,6 +1,9 @@
 use std::collections::DList;
 
-use assembler::ast::*;
+use assembler::ast::{
+    AST, Statement, Argument, MacroArgument, Mnemonic, Ident, IPath,
+    Statement_, Argument_, MacroArgument_
+};
 use assembler::lexer::{SourceLocation, Lexer, FileLexer, Token};
 use assembler::util::{fatal, rcstr};
 
@@ -78,7 +81,7 @@ impl<'a> Parser<'a> {
     }
 
 
-    pub fn parse(&mut self) -> Vec<Statement> {
+    pub fn parse(&mut self) -> AST {
         let mut ast = vec![];
 
         debug!("Starting parsing")
@@ -151,65 +154,65 @@ impl<'a> Parser<'a> {
         self.parse_ident()
     }
 
-    fn parse_argument(&mut self) -> Argument {
+    fn parse_argument(&mut self) -> Argument_ {
         let location = self.update_location();
 
         let arg = match self.token {
-            Token::INTEGER(i) => { self.bump(); ArgumentLiteral(i) },
-            Token::CHAR(c)    => { self.bump(); ArgumentChar(c) },
-            Token::LBRACKET   => ArgumentAddress(self.parse_address()),
-            Token::DOLLAR     => ArgumentConst(self.parse_constant()),
-            Token::COLON      => ArgumentLabel(self.parse_label()),
+            Token::INTEGER(i) => { self.bump(); Argument::Literal(i) },
+            Token::CHAR(c)    => { self.bump(); Argument::Char(c) },
+            Token::LBRACKET   => Argument::Address(self.parse_address()),
+            Token::DOLLAR     => Argument::Const(self.parse_constant()),
+            Token::COLON      => Argument::Label(self.parse_label()),
             _ => self.unexpected_token(&self.token, Some("an argument"))
         };
 
         Argument::new(arg, location)
     }
 
-    fn parse_macro_argument(&mut self) -> MacroArgument {
+    fn parse_macro_argument(&mut self) -> MacroArgument_ {
         let location = self.update_location();
 
         if self.token_is_argument() {
-            MacroArgument::new(MacroArgArgument(self.parse_argument()),
+            MacroArgument::new(MacroArgument::Argument(self.parse_argument()),
                                location)
         } else {
-            MacroArgument::new(MacroArgIdent(self.parse_ident()),
+            MacroArgument::new(MacroArgument::Ident(self.parse_ident()),
                                location)
         }
     }
 
     // -------------------------------------------------------------------
 
-    fn parse_include(&mut self) -> Statement {
+    fn parse_include(&mut self) -> Statement_ {
         let location = self.update_location();
 
         self.bump();
         self.expect(&Token::IDENT(rcstr("import")));
         let path = self.parse_path();
 
-        Statement::new(StatementInclude(path), location)
+        Statement::new(Statement::Include(path), location)
     }
 
-    fn parse_label_def(&mut self) -> Statement {
+    fn parse_label_def(&mut self) -> Statement_ {
         let location = self.update_location();
 
         let label = self.parse_ident();
         self.expect(&Token::COLON);
 
-        Statement::new(StatementLabel(label), location)
+        Statement::new(Statement::Label(label), location)
     }
 
-    fn parse_constant_def(&mut self) -> Statement {
+    fn parse_constant_def(&mut self) -> Statement_ {
         let location = self.update_location();
 
         let name = self.parse_constant();
         self.expect(&Token::EQ);
         let value = self.parse_argument();
 
-        Statement::new(StatementConst(name, value), location)
+        Statement::new(Statement::Const(name, value), location)
     }
 
-    fn parse_operation(&mut self) -> Statement {
+    fn parse_operation(&mut self) -> Statement_ {
         let location = self.update_location();
 
         let mn = if let Token::MNEMONIC(mn) = self.token {
@@ -225,10 +228,10 @@ impl<'a> Parser<'a> {
             args.push(self.parse_argument());
         }
 
-        Statement::new(StatementOperation(mn, args), location)
+        Statement::new(Statement::Operation(mn, args), location)
     }
 
-    fn parse_macro(&mut self) -> Statement {
+    fn parse_macro(&mut self) -> Statement_ {
         let location = self.update_location();
 
         self.expect(&Token::AT);
@@ -247,10 +250,10 @@ impl<'a> Parser<'a> {
         }
         self.expect(&Token::RPAREN);
 
-        Statement::new(StatementMacro(name, args), location)
+        Statement::new(Statement::Macro(name, args), location)
     }
 
-    fn parse_statement(&mut self) -> Statement {
+    fn parse_statement(&mut self) -> Statement_ {
         let stmt = match self.token {
             Token::HASH        => self.parse_include(),
             Token::DOLLAR      => self.parse_constant_def(),
@@ -269,7 +272,10 @@ impl<'a> Parser<'a> {
 mod tests {
     use std::rc::Rc;
 
-    use assembler::ast::*;
+    use assembler::ast::{
+        AST, Statement, Argument, MacroArgument, Mnemonic, Ident, IPath,
+        Statement_, Argument_, MacroArgument_
+    };
     use assembler::lexer::{dummy_source, Token, Lexer};
     use assembler::lexer::Token::*;
     use assembler::util::rcstr;
@@ -290,13 +296,13 @@ mod tests {
             ),
             vec![
                 Statement::new(
-                    StatementInclude(
+                    Statement::Include(
                         IPath::from_str("as/d")
                     ),
                     dummy_source()
                 ),
                 Statement::new(
-                    StatementOperation(
+                    Statement::Operation(
                         Mnemonic(from_str("HALT").unwrap()),
                         vec![]
                     ),
@@ -312,7 +318,7 @@ mod tests {
             parse(vec![HASH, IDENT(rcstr("import")), PATH(rcstr("as/d"))],
                   |p| p.parse_statement()),
             Statement::new(
-                StatementInclude(
+                Statement::Include(
                     IPath::from_str("as/d")
                 ),
                 dummy_source()
@@ -326,7 +332,7 @@ mod tests {
             parse(vec![IDENT(rcstr("lbl")), COLON],
                   |p| p.parse_statement()),
             Statement::new(
-                StatementLabel(
+                Statement::Label(
                     Ident::from_str("lbl")
                 ),
                 dummy_source()
@@ -340,10 +346,10 @@ mod tests {
             parse(vec![DOLLAR, IDENT(rcstr("c")), EQ, INTEGER(0)],
                   |p| p.parse_statement()),
             Statement::new(
-                StatementConst(
+                Statement::Const(
                     Ident::from_str("c"),
                     Argument::new(
-                        ArgumentLiteral(0),
+                        Argument::Literal(0),
                         dummy_source()
                     )
                 ),
@@ -358,11 +364,11 @@ mod tests {
             parse(vec![MNEMONIC(from_str("MOV").unwrap()), INTEGER(0)],
                   |p| p.parse_statement()),
             Statement::new(
-                StatementOperation(
+                Statement::Operation(
                     Mnemonic(from_str("MOV").unwrap()),
                     vec![
                         Argument::new(
-                            ArgumentLiteral(0),
+                            Argument::Literal(0),
                             dummy_source()
                         )
                     ]
@@ -379,22 +385,22 @@ mod tests {
                        LPAREN, INTEGER(0), COMMA, INTEGER(0), RPAREN],
                   |p| p.parse_statement()),
             Statement::new(
-                StatementMacro(
+                Statement::Macro(
                     Ident::from_str("macro"),
                     vec![
                         MacroArgument::new(
-                            MacroArgArgument(
+                            MacroArgument::Argument(
                                 Argument::new(
-                                    ArgumentLiteral(0),
+                                    Argument::Literal(0),
                                     dummy_source()
                                 )
                             ),
                             dummy_source()
                         ),
                         MacroArgument::new(
-                            MacroArgArgument(
+                            MacroArgument::Argument(
                                 Argument::new(
-                                    ArgumentLiteral(0),
+                                    Argument::Literal(0),
                                     dummy_source()
                                 )
                             ),
@@ -413,7 +419,7 @@ mod tests {
             parse(vec![INTEGER(0)],
                   |p| p.parse_argument()),
             Argument::new(
-                ArgumentLiteral(0),
+                Argument::Literal(0),
                 dummy_source()
             )
         )
@@ -425,7 +431,7 @@ mod tests {
             parse(vec![LBRACKET, INTEGER(0), RBRACKET],
                   |p| p.parse_argument()),
             Argument::new(
-                ArgumentAddress(Some(0)),
+                Argument::Address(Some(0)),
                 dummy_source()
             )
         )
@@ -437,7 +443,7 @@ mod tests {
             parse(vec![LBRACKET, UNDERSCORE, RBRACKET],
                   |p| p.parse_argument()),
             Argument::new(
-                ArgumentAddress(None),
+                Argument::Address(None),
                 dummy_source()
             )
         )
@@ -449,7 +455,7 @@ mod tests {
             parse(vec![DOLLAR, IDENT(rcstr("asd"))],
                   |p| p.parse_argument()),
             Argument::new(
-                ArgumentConst(
+                Argument::Const(
                     Ident::from_str("asd")
                 ),
                 dummy_source()
@@ -463,7 +469,7 @@ mod tests {
             parse(vec![COLON, IDENT(rcstr("asd"))],
                   |p| p.parse_argument()),
             Argument::new(
-                ArgumentLabel(
+                Argument::Label(
                     Ident::from_str("asd")
                 ),
                 dummy_source()
@@ -477,7 +483,7 @@ mod tests {
             parse(vec![CHAR(0)],
                   |p| p.parse_argument()),
             Argument::new(
-                ArgumentChar(0),
+                Argument::Char(0),
                 dummy_source()
             )
         )
@@ -489,9 +495,9 @@ mod tests {
             parse(vec![INTEGER(0)],
                   |p| p.parse_macro_argument()),
             MacroArgument::new(
-                MacroArgArgument(
+                MacroArgument::Argument(
                     Argument::new(
-                        ArgumentLiteral(0),
+                        Argument::Literal(0),
                         dummy_source()
                     )
                 ),
@@ -506,7 +512,7 @@ mod tests {
             parse(vec![IDENT(rcstr("asd"))],
                   |p| p.parse_macro_argument()),
             MacroArgument::new(
-                MacroArgIdent(
+                MacroArgument::Ident(
                     Ident::from_str("asd")
                 ),
                 dummy_source()
@@ -522,17 +528,17 @@ mod tests {
                   |p| p.parse()),
             vec![
                 Statement::new(
-                    StatementOperation(
+                    Statement::Operation(
                         Mnemonic(from_str("HALT").unwrap()),
                         vec![]
                     ),
                     dummy_source()
                 ),
                 Statement::new(
-                    StatementConst(
+                    Statement::Const(
                         Ident::from_str("c"),
                         Argument::new(
-                            ArgumentLiteral(0),
+                            Argument::Literal(0),
                             dummy_source()
                         )
                     ),

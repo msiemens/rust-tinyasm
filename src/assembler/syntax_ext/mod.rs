@@ -1,4 +1,4 @@
-use assembler::ast::Statement;
+use assembler::ast::AST;
 
 
 mod imports;
@@ -8,7 +8,7 @@ mod constants;
 mod labels;
 
 
-pub fn expand_syntax_extensions(ast: &mut Vec<Statement>) {
+pub fn expand_syntax_extensions(ast: &mut AST) {
     imports::expand(ast);
     subroutines::expand(ast);
     auto_address::expand(ast);

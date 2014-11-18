@@ -2,15 +2,18 @@ use std::ascii::AsciiExt;
 use std::collections::HashMap;
 use std::str::FromStr;
 
+use self::Instructions::*;
+use self::ArgumentType::*;
+
 
 #[deriving(PartialEq, Show)]
-pub enum Type {
+pub enum ArgumentType {
     Address,
     Literal
 }
 
-impl FromStr for Type {
-    fn from_str(s: &str) -> Option<Type> {
+impl FromStr for ArgumentType {
+    fn from_str(s: &str) -> Option<ArgumentType> {
         match s.char_at(0) {
             '[' => Some(Address),
             _   => Some(Literal)
@@ -53,7 +56,7 @@ make_instructions!(
 #[deriving(Show)]
 struct Operation {
     pub opcode: u8,
-    pub args: Vec<Type>
+    pub args: Vec<ArgumentType>
 }
 
 pub type InstructionClass = Vec<Operation>;
