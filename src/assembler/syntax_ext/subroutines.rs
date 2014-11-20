@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use assembler::ast::{AST, Statement, Argument, MacroArgument, MacroArgument_,
+use assembler::ast::{AST, Statement, Argument, MacroArgument, MacroArgumentNode,
                      Ident, Mnemonic};
 use assembler::lexer::dummy_source;
 use assembler::util::fatal;
@@ -21,7 +21,7 @@ enum SubroutineState {
     SubroutineStart(Ident),
     InSubroutine,
     SubroutineEnd,
-    SubroutineCall(Ident, Vec<MacroArgument_>),
+    SubroutineCall(Ident, Vec<MacroArgumentNode>),
     NotInSubroutine
 }
 
@@ -33,7 +33,7 @@ struct SubroutineExpander<'a> {
 impl<'a> SubroutineExpander<'a> {
     fn collect_routines(&mut self) {
         for stmt in self.ast.iter() {
-            let (ident, args) = if let Statement::Macro(ref ident, ref args) = stmt.node {
+            let (ident, args) = if let Statement::Macro(ref ident, ref args) = stmt.value {
                 (ident.clone(), args)
             } else {
                 continue
@@ -46,15 +46,15 @@ impl<'a> SubroutineExpander<'a> {
                            args.len() @ stmt)
                 }
 
-                let name = if let MacroArgument::Ident(ref name) = args[0].node {
+                let name = if let MacroArgument::Ident(ref name) = args[0].value {
                     name.clone()
                 } else {
                     fatal!("expected subroutine name, got {}",
                            args[0] @ stmt)
                 };
 
-                let argc = if let MacroArgument::Argument(ref arg) = args[1].node {
-                    if let Argument::Literal(argc) = arg.node {
+                let argc = if let MacroArgument::Argument(ref arg) = args[1].value {
+                    if let Argument::Literal(argc) = arg.value {
                         argc as uint
                     } else {
                         fatal!("expected argument count, got {}",
@@ -121,7 +121,7 @@ impl<'a> SubroutineExpander<'a> {
 
             // TODO: If let-ify
 
-            state = match self.ast[i].node {
+            state = match self.ast[i].value {
                 Statement::Macro(ref ident, ref args) => {
                     match ident.as_str()[] {
                         "start" => {
@@ -131,11 +131,11 @@ impl<'a> SubroutineExpander<'a> {
                             }
 
                             // Get subroutine name
-                            let ident = if let MacroArgument::Ident(ref ident) = args[0].node {
+                            let ident = if let MacroArgument::Ident(ref ident) = args[0].value {
                                 ident.clone()
                             } else {
                                 fatal!("expected subroutine name, found `{}`",
-                                       args[0].node @ args[0]);
+                                       args[0].value @ args[0]);
                             };
 
                             SubroutineStart(ident)
@@ -154,7 +154,7 @@ impl<'a> SubroutineExpander<'a> {
                             }
 
                             // Get subroutine name
-                            let ident = if let MacroArgument::Ident(ref ident) = args[0].node {
+                            let ident = if let MacroArgument::Ident(ref ident) = args[0].value {
                                 ident.clone()
                             } else {
                                 fatal!("expected subroutine name, found `{}`",
@@ -243,7 +243,7 @@ impl<'a> SubroutineExpander<'a> {
 
                     // Build arguments
                     for j in range(0, args.len()) {
-                        let arg = match args[j].node {
+                        let arg = match args[j].value {
                             MacroArgument::Argument(ref arg) => arg,
                             MacroArgument::Ident(ref ident) => {
                                 fatal!("expected argument, got `{}`", ident
@@ -343,7 +343,7 @@ impl<'a> SubroutineExpander<'a> {
 
         // Pass 3: Remove macro statements
         self.ast.retain(|stmt| {
-            match stmt.node {
+            match stmt.value {
                 Statement::Macro(..) => {
                     false
                 },

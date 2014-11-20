@@ -16,7 +16,7 @@ debug = true
 git = "https://github.com/japaric/seq.rs.git"
 
 [dependencies.docopt_macros]
-git = "https://github.com/docopt/docopt.rs"
+git = "https://github.com/leonkunert/docopt.rs"
 
 [dependencies.lazy_static]
 git = "https://github.com/Kimundi/lazy-static.rs"

@@ -1,19 +1,19 @@
 use assembler::instructions::{INSTRUCTIONS, ArgumentType};
-use assembler::ast::{Statement, Statement_, Argument, Mnemonic};
+use assembler::ast::{Statement, StatementNode, Argument, Mnemonic};
 use assembler::util::fatal;
 
 
-pub fn generate_binary(ast: Vec<Statement_>) -> Vec<Vec<u8>> {
+pub fn generate_binary(ast: Vec<StatementNode>) -> Vec<Vec<u8>> {
     let mut binary = vec![];
 
     for stmt in ast.iter() {
-        if let Statement::Operation(mnem, ref args) = stmt.node {
+        if let Statement::Operation(mnem, ref args) = stmt.value {
             // Get the requested mnemonic
             let Mnemonic(instr) = mnem;
 
             // Get the argument types we received
             let arg_types = args.iter().map(|ref arg| {
-                match arg.node {
+                match arg.value {
                     Argument::Literal(_) | Argument::Char(_) => {
                         ArgumentType::Literal
                     },
@@ -43,7 +43,7 @@ pub fn generate_binary(ast: Vec<Statement_>) -> Vec<Vec<u8>> {
             // Finally, write the opcode
             let mut binary_stmt = vec![op.opcode];
             binary_stmt.extend(args.iter().map(|arg| {
-                match arg.node {
+                match arg.value {
                     Argument::Literal(i) => i,
                     Argument::Char(c) => c,
                     Argument::Address(a) => a.unwrap(),

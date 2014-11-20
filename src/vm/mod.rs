@@ -24,7 +24,7 @@ fn run(source: &[u8]) {
         debug!("");
         debug!("source: {}@{}", source, source.len());
         debug!("memory: {}@{}", memory[], memory[].len());
-        debug!("pc: {:u}", pc);
+        debug!("pc: {}", pc);
 
         let opcode = source[pc];                        debug!("opcode: {:#04X}", opcode);
         let ref instruction = INSTRUCTIONS.get(&opcode).unwrap();

@@ -187,11 +187,11 @@ make_instruction!(IJgt(args[3], memory) {
 
 // I/O
 make_instruction!(IAPrint(args[1], memory) -> Continue {
-    print!("{:c}", args[0] as char);
+    print!("{:}", args[0] as char);
 })
 
 make_instruction!(IDPrint(args[1], memory) -> Continue {
-    print!("{:u}", args[0]);
+    print!("{:}", args[0]);
 })
 
 

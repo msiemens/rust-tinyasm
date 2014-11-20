@@ -5,21 +5,21 @@ use assembler::lexer::SourceLocation;
 use assembler::util::{SharedString, rcstr, rcstring};
 
 
-pub type AST = Vec<Statement_>;
+pub type AST = Vec<StatementNode>;
 
 // FIXME: Find better wrapper names
 macro_rules! define(
     ( $name:ident -> $wrapper:ident : $( $variants:ident ( $( $arg:ty ),* ) ),* ) => {
         #[deriving(PartialEq, Eq, Clone)]
         pub struct $wrapper {
-            pub node: $name,
+            pub value: $name,
             pub location: SourceLocation
         }
 
         impl $name {
             pub fn new(stmt: $name, location: SourceLocation) -> $wrapper {
                 $wrapper {
-                    node: stmt,
+                    value: stmt,
                     location: location
                 }
             }
@@ -27,7 +27,7 @@ macro_rules! define(
 
         impl fmt::Show for $wrapper {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                write!(f, "{}", self.node)
+                write!(f, "{}", self.value)
             }
         }
 
@@ -40,12 +40,12 @@ macro_rules! define(
 
 
 define!(
-Statement -> Statement_:
+Statement -> StatementNode:
     Include(IPath),
     Label(Ident),
-    Const(Ident, Argument_),
-    Operation(Mnemonic, Vec<Argument_>),
-    Macro(Ident, Vec<MacroArgument_>)
+    Const(Ident, ArgumentNode),
+    Operation(Mnemonic, Vec<ArgumentNode>),
+    Macro(Ident, Vec<MacroArgumentNode>)
 )
 
 impl fmt::Show for Statement {
@@ -76,7 +76,7 @@ impl fmt::Show for Statement {
 
 
 define!(
-Argument -> Argument_:
+Argument -> ArgumentNode:
     Literal(u8),
     Address(Option<u8>),
     Const(Ident),
@@ -103,8 +103,8 @@ impl fmt::Show for Argument {
 
 
 define!(
-MacroArgument -> MacroArgument_:
-    Argument(Argument_),
+MacroArgument -> MacroArgumentNode:
+    Argument(ArgumentNode),
     Ident(Ident)
 )
 

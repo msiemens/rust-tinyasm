@@ -2,7 +2,7 @@ use std::collections::DList;
 
 use assembler::ast::{
     AST, Statement, Argument, MacroArgument, Mnemonic, Ident, IPath,
-    Statement_, Argument_, MacroArgument_
+    StatementNode, ArgumentNode, MacroArgumentNode
 };
 use assembler::lexer::{SourceLocation, Lexer, FileLexer, Token};
 use assembler::util::{fatal, rcstr};
@@ -154,7 +154,7 @@ impl<'a> Parser<'a> {
         self.parse_ident()
     }
 
-    fn parse_argument(&mut self) -> Argument_ {
+    fn parse_argument(&mut self) -> ArgumentNode {
         let location = self.update_location();
 
         let arg = match self.token {
@@ -169,7 +169,7 @@ impl<'a> Parser<'a> {
         Argument::new(arg, location)
     }
 
-    fn parse_macro_argument(&mut self) -> MacroArgument_ {
+    fn parse_macro_argument(&mut self) -> MacroArgumentNode {
         let location = self.update_location();
 
         if self.token_is_argument() {
@@ -183,7 +183,7 @@ impl<'a> Parser<'a> {
 
     // -------------------------------------------------------------------
 
-    fn parse_include(&mut self) -> Statement_ {
+    fn parse_include(&mut self) -> StatementNode {
         let location = self.update_location();
 
         self.bump();
@@ -193,7 +193,7 @@ impl<'a> Parser<'a> {
         Statement::new(Statement::Include(path), location)
     }
 
-    fn parse_label_def(&mut self) -> Statement_ {
+    fn parse_label_def(&mut self) -> StatementNode {
         let location = self.update_location();
 
         let label = self.parse_ident();
@@ -202,7 +202,7 @@ impl<'a> Parser<'a> {
         Statement::new(Statement::Label(label), location)
     }
 
-    fn parse_constant_def(&mut self) -> Statement_ {
+    fn parse_constant_def(&mut self) -> StatementNode {
         let location = self.update_location();
 
         let name = self.parse_constant();
@@ -212,7 +212,7 @@ impl<'a> Parser<'a> {
         Statement::new(Statement::Const(name, value), location)
     }
 
-    fn parse_operation(&mut self) -> Statement_ {
+    fn parse_operation(&mut self) -> StatementNode {
         let location = self.update_location();
 
         let mn = if let Token::MNEMONIC(mn) = self.token {
@@ -231,7 +231,7 @@ impl<'a> Parser<'a> {
         Statement::new(Statement::Operation(mn, args), location)
     }
 
-    fn parse_macro(&mut self) -> Statement_ {
+    fn parse_macro(&mut self) -> StatementNode {
         let location = self.update_location();
 
         self.expect(&Token::AT);
@@ -253,7 +253,7 @@ impl<'a> Parser<'a> {
         Statement::new(Statement::Macro(name, args), location)
     }
 
-    fn parse_statement(&mut self) -> Statement_ {
+    fn parse_statement(&mut self) -> StatementNode {
         let stmt = match self.token {
             Token::HASH        => self.parse_include(),
             Token::DOLLAR      => self.parse_constant_def(),
@@ -274,7 +274,7 @@ mod tests {
 
     use assembler::ast::{
         AST, Statement, Argument, MacroArgument, Mnemonic, Ident, IPath,
-        Statement_, Argument_, MacroArgument_
+        StatementNode, ArgumentNode, MacroArgumentNode
     };
     use assembler::lexer::{dummy_source, Token, Lexer};
     use assembler::lexer::Token::*;

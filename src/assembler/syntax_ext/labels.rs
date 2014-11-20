@@ -9,7 +9,7 @@ pub fn expand(ast: &mut AST) {
 
     // Pass 1: Collect label definitions
     ast.retain(|stmt| {
-        match stmt.node {
+        match stmt.value {
             Statement::Label(ref name) => {
                 if labels.insert(name.clone(), offset).is_some() {
                     warn!("redefinition of label: {}", name @ stmt);
@@ -33,10 +33,10 @@ pub fn expand(ast: &mut AST) {
 
     // Pass 2: Replace label usages
     for stmt in ast.iter_mut() {
-        if let Statement::Operation(_, ref mut args) = stmt.node {
+        if let Statement::Operation(_, ref mut args) = stmt.value {
             for arg in args.iter_mut() {
                 // Get a new location if argument is a label
-                arg.node = if let Argument::Label(ref name) = arg.node {
+                arg.value = if let Argument::Label(ref name) = arg.value {
                     if let Some(val) = labels.get(name) {
                         overflow_check!(*val @ arg);
                         Argument::Literal(*val as u8)

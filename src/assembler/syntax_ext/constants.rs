@@ -8,16 +8,16 @@ pub fn expand(ast: &mut AST) {
 
     // Pass 1: Collect constant definitions
     ast.retain(|stmt| {
-        let (name, value) = if let Statement::Const(ref name, ref value) = stmt.node {
+        let (name, value) = if let Statement::Const(ref name, ref value) = stmt.value {
             (name, value)
         } else {
             // Not a const assignment, keep it
             return true
         };
 
-        match value.node {
+        match value.value {
             Argument::Literal(_) | Argument::Address(_) => {
-                if consts.insert(name.clone(), value.node.clone()).is_some() {
+                if consts.insert(name.clone(), value.value.clone()).is_some() {
                     warn!("redefinition of ${}", name @ value);
                 }
             },
@@ -31,7 +31,7 @@ pub fn expand(ast: &mut AST) {
 
     // Pass 2: Replace constant usages
     for stmt in ast.iter_mut() {
-        let args = if let Statement::Operation(_, ref mut args) = stmt.node {
+        let args = if let Statement::Operation(_, ref mut args) = stmt.value {
             args
         } else {
             continue
@@ -39,7 +39,7 @@ pub fn expand(ast: &mut AST) {
 
         for arg in args.iter_mut() {
             // Get the new value if the argument is a constant
-            arg.node = if let Argument::Const(ref name) = arg.node {
+            arg.value = if let Argument::Const(ref name) = arg.value {
                 match consts.get(name) {
                     Some(value) => value.clone(),
                     None => fatal!("unknown constant: ${}", name @ arg)

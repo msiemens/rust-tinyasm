@@ -11,7 +11,7 @@ pub fn expand(ast: &mut AST) {
     let mut last_file = None;
 
     while i < ast.len() {
-        let mut included_ast = if let Statement::Include(ref include) = ast[i].node {
+        let mut included_ast = if let Statement::Include(ref include) = ast[i].value {
             let path = Path::new(&*ast[i].location.filename);
             let dir = Path::new(path.dirname());
             let to_include = dir.join(include.as_str()[]);

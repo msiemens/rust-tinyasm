@@ -12,7 +12,7 @@ pub struct SourceLocation {
 }
 
 impl fmt::Show for SourceLocation {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::FormatError> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}:{}", self.filename, self.lineno)
     }
 }
@@ -71,7 +71,7 @@ impl fmt::Show for Token {
             Token::MNEMONIC(instr)  => write!(f, "{}", instr),
             Token::IDENT(ref ident) => write!(f, "{}", ident),
             Token::INTEGER(i)       => write!(f, "{}", i),
-            Token::CHAR(c)          => write!(f, "{:c}", c as char),
+            Token::CHAR(c)          => write!(f, "{}", c as char),
             Token::PATH(ref path)   => write!(f, "{}", path),
 
             Token::EOF         => write!(f, "EOF"),
