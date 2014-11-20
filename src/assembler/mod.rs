@@ -1,5 +1,4 @@
 // TODO: Add tests for syntax_ext
-// TODO: Output hex by lines
 // TODO: Let all error messages start with a lowercase letter
 
 use std::io::{Open, Write};
@@ -51,15 +50,20 @@ pub fn main(args: Args) {
 
     if args.flag_bin {
         let mut file = File::open_mode(&Path::new(args.arg_output), Open, Write);
-        for b in binary.iter() {
-            match file.write([*b][]).err() {
-                Some(e) => panic!("Cannot write to output file: {}", e),
-                None => {}
+        for stmt in binary.iter() {
+            for b in stmt.iter() {
+                match file.write([*b][]).err() {
+                    Some(e) => panic!("Cannot write to output file: {}", e),
+                    None => {}
+                }
             }
         }
     } else {
-        for b in binary.iter() {
-            print!("{:#04x} ", *b)
+        for stmt in binary.iter() {
+            for b in stmt.iter() {
+                print!("{:#04x} ", *b)
+            }
+            println!("");
         }
     }
 }
