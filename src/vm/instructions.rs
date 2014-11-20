@@ -39,6 +39,7 @@ macro_rules! fn_execute(
         fn execute(&self, $args: &[u8], $mem: &[u8]) -> StateChange {
             let $raw = $args;
             let $args = self.get_args($args, $mem);
+            debug!("interpreted args: {}", $args);
             $body
         }
     };
@@ -171,14 +172,14 @@ make_instruction!(IJeq(args[3], memory) {
 })
 
 make_instruction!(IJls(args[3], memory) {
-    match args[1] > args[2] {
+    match args[1] < args[2] {
         true => Jump(args[0]),
         false => Continue
     }
 })
 
 make_instruction!(IJgt(args[3], memory) {
-    match args[1] < args[2] {
+    match args[1] > args[2] {
         true => Jump(args[0]),
         false => Continue
     }
@@ -196,10 +197,10 @@ make_instruction!(IDPrint(args[1], memory) -> Continue {
 
 
 // Misc
-make_instruction!(IRandom(args[1], memory) {
+make_instruction!(IRandom(args[1], memory) -> ModifyMemory(raw[0]) {
     let mut rand_range = RandRange::new(0u8, 255u8);
     let mut rng = rand::task_rng();
-    ModifyMemory(args[0], rand_range.sample(&mut rng))
+    rand_range.sample(&mut rng)
 })
 
 
@@ -218,18 +219,18 @@ lazy_static! {
         seq!{
             // M[a] = M[a] bit-wise and M[b]
             // opcode | a | b
-            0x00 => instruction!(IAnd[Literal, Address]),
-            0x01 => instruction!(IAnd[Literal, Literal]),
+            0x00 => instruction!(IAnd[Address, Address]),
+            0x01 => instruction!(IAnd[Address, Literal]),
 
             // M[a] = M[a] bit-wise or M[b]
             // opcode | a | b
-            0x02 => instruction!(IOr[Literal, Address]),
-            0x03 => instruction!(IOr[Literal, Literal]),
+            0x02 => instruction!(IOr[Address, Address]),
+            0x03 => instruction!(IOr[Address, Literal]),
 
             // M[a] = M[a] bitwise xor M[b]
             // opcode | a | b
-            0x04 => instruction!(IXor[Literal, Address]),
-            0x05 => instruction!(IXor[Literal, Literal]),
+            0x04 => instruction!(IXor[Address, Address]),
+            0x05 => instruction!(IXor[Address, Literal]),
 
             // M[a] = bit-wise not M[a]
             // opcode | a
@@ -237,8 +238,8 @@ lazy_static! {
 
             // M[a] = M[b], or the Literal-set M[a] = b
             // opcode | a | b:
-            0x07 => instruction!(IMov[Literal, Address]),
-            0x08 => instruction!(IMov[Literal, Literal]),
+            0x07 => instruction!(IMov[Address, Address]),
+            0x08 => instruction!(IMov[Address, Literal]),
 
             // M[a] = random value (0 to 25 -> equal probability distribution)
             // opcode | a:
@@ -270,8 +271,8 @@ lazy_static! {
             // or if M[a] is equal to the Literal b.
             // opcode | x | a | b:
             0x14 => instruction!(IJeq[Address, Address, Address]),
-            0x15 => instruction!(IJeq[Address, Address, Literal]),
-            0x16 => instruction!(IJeq[Literal, Address, Address]),
+            0x15 => instruction!(IJeq[Literal, Address, Address]),
+            0x16 => instruction!(IJeq[Address, Address, Literal]),
             0x17 => instruction!(IJeq[Literal, Address, Literal]),
 
             // Jump to x or M[x] if M[a] is less than M[b]
@@ -279,16 +280,16 @@ lazy_static! {
             // opcode | x | a | b:
             // opcode | x | a | b:
             0x18 => instruction!(IJls[Address, Address, Address]),
-            0x19 => instruction!(IJls[Address, Address, Literal]),
-            0x1A => instruction!(IJls[Literal, Address, Address]),
+            0x19 => instruction!(IJls[Literal, Address, Address]),
+            0x1A => instruction!(IJls[Address, Address, Literal]),
             0x1B => instruction!(IJls[Literal, Address, Literal]),
 
             // Jump to x or M[x] if M[a] is greater than M[b]
             // or if M[a] is greater than the Literal b
             // opcode | x | a | b:
             0x1C => instruction!(IJgt[Address, Address, Address]),
-            0x1D => instruction!(IJgt[Address, Address, Literal]),
-            0x1E => instruction!(IJgt[Literal, Address, Address]),
+            0x1D => instruction!(IJgt[Literal, Address, Address]),
+            0x1E => instruction!(IJgt[Address, Address, Literal]),
             0x1F => instruction!(IJgt[Literal, Address, Literal]),
 
             // Halts the program / freeze flow of execution
