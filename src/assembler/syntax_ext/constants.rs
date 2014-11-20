@@ -12,7 +12,7 @@ pub fn expand(ast: &mut AST) {
             (name, value)
         } else {
             // Not a const assignment, keep it
-            return false
+            return true
         };
 
         match value.node {
