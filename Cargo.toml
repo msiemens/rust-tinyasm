@@ -9,8 +9,8 @@ name = "tiny"
 path = "src/main.rs"
 
 [profile.dev]
-#opt-level = 2  # Controls the --opt-level the compiler builds with
-debug = true   # Controls whether the compiler passes -g or `--cfg ndebug`
+#opt-level = 2
+debug = true
 
 [dependencies.seq]
 git = "https://github.com/japaric/seq.rs.git"
