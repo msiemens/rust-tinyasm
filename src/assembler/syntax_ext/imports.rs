@@ -17,7 +17,7 @@ pub fn expand(ast: &mut AST) {
             let to_include = dir.join(include.as_str()[]);
 
             if last_file == Some(to_include.clone()) {
-                fatal!("Circular import of {}", to_include.display()
+                fatal!("circular import of {}", to_include.display()
                         @ ast[i]);
             }
 
@@ -26,7 +26,7 @@ pub fn expand(ast: &mut AST) {
             let contents = File::open(&to_include)
                 .read_to_string()
                 .unwrap_or_else(|e| {
-                    fatal!("Cannot read {}: {}", to_include.display(), e
+                    fatal!("cannot read {}: {}", to_include.display(), e
                            @ ast[i]);
                 });
             let mut parser = Parser::new(contents[], to_include.as_str().unwrap());

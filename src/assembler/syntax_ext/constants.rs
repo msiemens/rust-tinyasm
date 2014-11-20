@@ -18,10 +18,10 @@ pub fn expand(ast: &mut AST) {
         match value.node {
             Argument::Literal(_) | Argument::Address(_) => {
                 if consts.insert(name.clone(), value.node.clone()).is_some() {
-                    warn!("Redefinition of ${}", name @ value);
+                    warn!("redefinition of ${}", name @ value);
                 }
             },
-            _ => fatal!("Invalid constant value: {}", value @ value)
+            _ => fatal!("invalid constant value: {}", value @ value)
         }
 
         false  // Remove this statement from the AST
@@ -42,7 +42,7 @@ pub fn expand(ast: &mut AST) {
             arg.node = if let Argument::Const(ref name) = arg.node {
                 match consts.get(name) {
                     Some(value) => value.clone(),
-                    None => fatal!("Unknown constant: ${}", name @ arg)
+                    None => fatal!("unknown constant: ${}", name @ arg)
                 }
             } else {
                 continue

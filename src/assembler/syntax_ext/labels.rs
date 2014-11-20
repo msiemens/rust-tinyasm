@@ -12,7 +12,7 @@ pub fn expand(ast: &mut AST) {
         match stmt.node {
             Statement::Label(ref name) => {
                 if labels.insert(name.clone(), offset).is_some() {
-                    warn!("Redefinition of label: {}", name @ stmt);
+                    warn!("redefinition of label: {}", name @ stmt);
                 }
 
                 false
@@ -41,7 +41,7 @@ pub fn expand(ast: &mut AST) {
                         overflow_check!(*val @ arg);
                         Argument::Literal(*val as u8)
                     } else {
-                        fatal!("Unknown label: {}", name @ arg)
+                        fatal!("unknown label: {}", name @ arg)
                     }
                 } else {
                     continue

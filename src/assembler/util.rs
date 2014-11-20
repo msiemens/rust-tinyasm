@@ -19,7 +19,7 @@ pub fn rcstring(s: String) -> SharedString {
 
 macro_rules! overflow_check(
     ($val:expr @ $stmt:expr) => (
-        if $val > 255 { warn!("Overflow: {} > 255", $val @ $stmt) }
+        if $val > 255 { warn!("overflow: {} > 255", $val @ $stmt) }
     )
 )
 

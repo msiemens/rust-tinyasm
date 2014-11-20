@@ -20,7 +20,7 @@ pub fn generate_binary(ast: Vec<Statement_>) -> Vec<Vec<u8>> {
                     Argument::Address(_) => {
                         ArgumentType::Address
                     },
-                    _ => fatal!("Unprocessed argument: {}", arg @ arg)
+                    _ => fatal!("unprocessed argument: {}", arg @ arg)
                 }
             }).collect();
 
@@ -36,7 +36,7 @@ pub fn generate_binary(ast: Vec<Statement_>) -> Vec<Vec<u8>> {
                     .collect::<Vec<_>>()
                     .connect(" or ");
 
-                fatal!("Invalid arguments for {}: found {}, allowed: {}",
+                fatal!("invalid arguments for {}: found {}, allowed: {}",
                        instr, arg_types, allowed_arg_types @ stmt)
             });
 
@@ -48,13 +48,13 @@ pub fn generate_binary(ast: Vec<Statement_>) -> Vec<Vec<u8>> {
                     Argument::Char(c) => c,
                     Argument::Address(a) => a.unwrap(),
                     // Shouldn't happen as we check this in arg_types
-                    _ => fatal!("Unprocessed argument: {}", arg @ arg)
+                    _ => fatal!("unprocessed argument: {}", arg @ arg)
                 }
             }));
 
             binary.push(binary_stmt);
         } else {
-            fatal!("Unprocessed operation: {}", stmt @ stmt)
+            fatal!("unprocessed operation: {}", stmt @ stmt)
         }
     }
 

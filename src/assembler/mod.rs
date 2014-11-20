@@ -1,6 +1,3 @@
-// TODO: Add tests for syntax_ext
-// TODO: Let all error messages start with a lowercase letter
-
 use std::io::{Open, Write};
 #[cfg(not(test))] use std::io::File;
 

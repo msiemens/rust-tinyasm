@@ -42,14 +42,14 @@ impl<'a> SubroutineExpander<'a> {
 
             if ident.as_str()[] == "start" {
                 if args.len() != 2 {
-                    fatal!("Invalid number of Argument::s for @start: {}",
+                    fatal!("invalid number of Argument::s for @start: {}",
                            args.len() @ stmt)
                 }
 
                 let name = if let MacroArgument::Ident(ref name) = args[0].node {
                     name.clone()
                 } else {
-                    fatal!("Expected subroutine name, got {}",
+                    fatal!("expected subroutine name, got {}",
                            args[0] @ stmt)
                 };
 
@@ -57,16 +57,16 @@ impl<'a> SubroutineExpander<'a> {
                     if let Argument::Literal(argc) = arg.node {
                         argc as uint
                     } else {
-                        fatal!("Expected argument count, got {}",
+                        fatal!("expected argument count, got {}",
                                args[1] @ stmt)
                     }
                 } else {
-                    fatal!("Expected argument count, got {}",
+                    fatal!("expected argument count, got {}",
                            args[1] @ stmt)
                 };
 
                 if self.routines.insert(name, argc).is_some() {
-                    fatal!("Redefinition of subroutine: {}", args[0] @ stmt)
+                    fatal!("redefinition of subroutine: {}", args[0] @ stmt)
                 };
             }
         }
@@ -127,14 +127,14 @@ impl<'a> SubroutineExpander<'a> {
                         "start" => {
                             if state == InSubroutine {
                                 // Invalid state, shouldn't happen
-                                fatal!("Cannot nest subroutines" @ self.ast[i]);
+                                fatal!("cannot nest subroutines" @ self.ast[i]);
                             }
 
                             // Get subroutine name
                             let ident = if let MacroArgument::Ident(ref ident) = args[0].node {
                                 ident.clone()
                             } else {
-                                fatal!("Expected subroutine name, found `{}`",
+                                fatal!("expected subroutine name, found `{}`",
                                        args[0].node @ args[0]);
                             };
 
@@ -149,7 +149,7 @@ impl<'a> SubroutineExpander<'a> {
                         },
                         "call" => {
                             if args.len() == 0 {
-                                fatal!("Expected (name, args...), found `)`"
+                                fatal!("expected (name, args...), found `)`"
                                        @ self.ast[i]);
                             }
 
@@ -157,18 +157,18 @@ impl<'a> SubroutineExpander<'a> {
                             let ident = if let MacroArgument::Ident(ref ident) = args[0].node {
                                 ident.clone()
                             } else {
-                                fatal!("Expected subroutine name, found `{}`",
+                                fatal!("expected subroutine name, found `{}`",
                                        args[0] @ args[0]);
                             };
 
                             // Get expected argument count
                             let routine_argc = *self.routines.get(&ident).unwrap_or_else(|| {
-                                fatal!("Unknown subroutine: {}", ident
+                                fatal!("unknown subroutine: {}", ident
                                        @ self.ast[i]);
                             });
 
                             if args.len() - 1 != routine_argc {
-                                fatal!("Wrong argument count: found {} Argument::s, expected {}",
+                                fatal!("wrong argument count: found {} Argument::s, expected {}",
                                        args.len() - 1, routine_argc
                                        @ args[0]);
                             }
@@ -241,12 +241,14 @@ impl<'a> SubroutineExpander<'a> {
                 SubroutineCall(name, args) => {
                     self.ast.remove(i);
 
-                    // Build Argument::s
+                    // Build arguments
                     for j in range(0, args.len()) {
                         let arg = match args[j].node {
                             MacroArgument::Argument(ref arg) => arg,
-                            MacroArgument::Ident(ref ident) => fatal!("Expected argument, got `{}`",
-                                                                      ident @ args[j])
+                            MacroArgument::Ident(ref ident) => {
+                                fatal!("expected argument, got `{}`", ident
+                                       @ args[j])
+                            }
                         };
 
                         self.ast.insert(i + j, Statement::new(
