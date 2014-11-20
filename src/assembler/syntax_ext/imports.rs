@@ -7,18 +7,21 @@ use assembler::util::fatal;
 
 pub fn expand(ast: &mut AST) {
     // TODO: Implement imports, cf https://github.com/msiemens/TINY.ASM/blob/master/preprocessor/imports.py
-
-    // Pass 2: Replace label usages
     let mut i = 0;
+    let mut last_file = None;
+
     while i < ast.len() {
         let mut included_ast = if let Statement::Include(ref include) = ast[i].node {
             let path = Path::new(&*ast[i].location.filename);
             let dir = Path::new(path.dirname());
             let to_include = dir.join(include.as_str()[]);
 
-            println!("Including {}", to_include.display());
+            if last_file == Some(to_include.clone()) {
+                fatal!("Circular import of {}", to_include.display()
+                        @ ast[i]);
+            }
 
-            // TODO: Check for multiple/circular includes
+            last_file = Some(to_include.clone());
 
             let contents = File::open(&to_include)
                 .read_to_string()
@@ -40,7 +43,5 @@ pub fn expand(ast: &mut AST) {
         for j in range(0, included_ast.len()) {
             ast.insert(i + j, included_ast.remove(0).unwrap());
         }
-
-        i += 1;
     }
 }
