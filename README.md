@@ -6,8 +6,72 @@ A Rust port of my Python submission for http://redd.it/1kqxz9:
 >
 Your goal will be to write an assembler for Tiny: though you don't need to simulate the code or machine components, you must take given assembly-language source code and produce a list of hex op-codes. You are essentially writing code that converts the lowest human-readable language to machine-readable language!
 
-My original Python submission along with more information about the syntax
-can be found here: https://github.com/msiemens/TINY.ASM/
+My original Python submission can be found here:
+https://github.com/msiemens/TINY.ASM/. This is a Rust port. It features
+a much better architecture, including a proper parser and abstract syntax tree.
+Like the Python version, this also comes with a small VM.
+
+## Usage
+
+Run the assembler:
+
+    $ tiny asm <input>
+
+Create a binary file that the VM can execute:
+
+    $ tiny asm --bin <input> <binary>
+
+Run the VM:
+
+    $ tiny vm <binary>
+
+
+## Syntax (+ Additions)
+
+     v--- operation
+    MOV [0] 1
+         ^  ^---- literal
+         |------- memory address
+
+
+**Comments**
+
+    ; This is a comment
+
+**Labels**
+
+    label:
+    JMP :label
+
+**Constants**
+
+    $mem_addr = [0]
+    $some_const = 5
+
+    MOV $mem_addr $some_const
+
+**Imports**
+
+    #import file_name.asm
+
+**Char Constants**
+
+    APRINT '!'  ; Prints: !
+    APRINT '\n' ; Prints a newline
+
+**Subroutines**
+
+    ; Define a subroutine
+    ; name ----v              v---- number of arguments
+    @start(binary_shift_left, 1)
+        ADD     $arg0       $arg0
+        MOV     $return     $arg0
+    @end
+
+    ; Call a subroutine
+    @call(binary_shift_left, 5)
+    @call(binary_shift_left, [5])
+
 
 ## LICENSE
 
