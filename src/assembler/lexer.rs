@@ -203,6 +203,8 @@ impl<'a> FileLexer<'a> {
     }
 
     fn tokenize_mnemonic(&mut self) -> Token {
+        debug!("Tokenizing a mnemonic");
+
         let mnemonic = self.collect(|c| {
             c.is_alphabetic() && c.is_uppercase()
         });
@@ -217,6 +219,8 @@ impl<'a> FileLexer<'a> {
     }
 
     fn tokenize_ident(&mut self) -> Token {
+        debug!("Tokenizing an ident");
+
         let ident = self.collect(|c| {
             (c.is_alphabetic() && c.is_lowercase())
                 || c.is_digit()
@@ -227,6 +231,8 @@ impl<'a> FileLexer<'a> {
     }
 
     fn tokenize_digit(&mut self) -> Token {
+        debug!("Tokenizing a digit");
+
         let integer = self.collect(|c| c.is_digit());
 
         let integer = if let Some(m) = from_str(integer[]) {
@@ -239,6 +245,8 @@ impl<'a> FileLexer<'a> {
     }
 
     fn tokenize_char(&mut self) -> Token {
+        debug!("Tokenizing a char");
+
         self.bump();  // '\'' matched, move on
         let c = self.curr.unwrap_or_else(|| {
             self.fatal(format!("expected a char, found EOF"));
@@ -254,10 +262,8 @@ impl<'a> FileLexer<'a> {
                 Some(c) => self.fatal(format!("unsupported or invalid escape sequence: \\{}", c)),
                 None => self.fatal(format!("expected escaped char, found EOF"))
             }
-        } else if c.is_whitespace() || c.is_alphanumeric() {
-            Token::CHAR(c as u8)
         } else {
-            self.fatal(format!("invalid character: {}", c))
+            Token::CHAR(c as u8)
         };
         self.bump();
 
@@ -268,6 +274,8 @@ impl<'a> FileLexer<'a> {
     }
 
     fn tokenize_path(&mut self) -> Token {
+        debug!("Tokenizing a path");
+
         self.bump();  // '<' matched, move on
         let path = self.collect(|c| *c != '>');
 
@@ -413,6 +421,12 @@ mod tests {
     fn test_ident() {
         assert_eq!(tokenize("abc"),
                    vec![IDENT(rcstr("abc"))]);
+    }
+
+    #[test]
+    fn test_ident_with_underscore() {
+        assert_eq!(tokenize("abc_efg"),
+                   vec![IDENT(rcstr("abc_efg"))]);
     }
 
     #[test]

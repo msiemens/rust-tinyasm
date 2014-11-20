@@ -81,7 +81,7 @@ mod test {
                     dummy_source()
                 )
             ]),
-            vec![0xFF]
+            vec![vec![0xFF]]
         )
     }
 }
