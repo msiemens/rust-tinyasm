@@ -167,8 +167,7 @@ impl<'a> FileLexer<'a> {
     fn curr_repr(&self) -> SharedString {
         match self.curr {
             Some(c) => {
-                let mut repr = vec![];
-                c.escape_default(|r| repr.push(r));
+                let repr: Vec<char> = c.escape_default().collect();
                 Rc::new(String::from_chars(repr[]))
             },
             None => rcstr("EOF")
@@ -223,7 +222,7 @@ impl<'a> FileLexer<'a> {
 
         let ident = self.collect(|c| {
             (c.is_alphabetic() && c.is_lowercase())
-                || c.is_digit()
+                || c.is_numeric()
                 || *c == '_'
         });
 
@@ -233,7 +232,7 @@ impl<'a> FileLexer<'a> {
     fn tokenize_digit(&mut self) -> Token {
         debug!("Tokenizing a digit");
 
-        let integer = self.collect(|c| c.is_digit());
+        let integer = self.collect(|c| c.is_numeric());
 
         let integer = if let Some(m) = from_str(integer[]) {
             m
@@ -311,9 +310,9 @@ impl<'a> FileLexer<'a> {
             c if c.is_alphabetic() && c.is_lowercase() => {
                 self.tokenize_ident()
             },
-            c if c.is_digit() => self.tokenize_digit(),
-            '\''              => self.tokenize_char(),
-            '<'               => self.tokenize_path(),
+            c if c.is_numeric() => self.tokenize_digit(),
+            '\''                => self.tokenize_char(),
+            '<'                 => self.tokenize_path(),
 
             ';' => {
                 self.eat_all(|c| *c != '\n');

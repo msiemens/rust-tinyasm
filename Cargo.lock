@@ -2,28 +2,28 @@
 name = "tiny-asm"
 version = "0.0.1"
 dependencies = [
- "docopt_macros 0.6.5 (git+https://github.com/leonkunert/docopt.rs)",
- "lazy_static 0.1.0 (git+https://github.com/Kimundi/lazy-static.rs)",
+ "docopt_macros 0.6.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "seq 0.0.0 (git+https://github.com/japaric/seq.rs.git)",
 ]
 
 [[package]]
 name = "docopt"
 version = "0.6.8"
-source = "git+https://github.com/leonkunert/docopt.rs#4ca87d4896c4c56ea841294cfde61d0b0326060f"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "docopt_macros"
-version = "0.6.5"
-source = "git+https://github.com/leonkunert/docopt.rs#4ca87d4896c4c56ea841294cfde61d0b0326060f"
+version = "0.6.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "docopt 0.6.8 (git+https://github.com/leonkunert/docopt.rs)",
+ "docopt 0.6.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "lazy_static"
-version = "0.1.0"
-source = "git+https://github.com/Kimundi/lazy-static.rs#62976cb611c5396e11315ae64c9c389576240eb7"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "seq"
