@@ -12,7 +12,7 @@ pub fn generate_binary(ast: Vec<StatementNode>) -> Vec<Vec<u8>> {
             let Mnemonic(instr) = mnem;
 
             // Get the argument types we received
-            let arg_types = args.iter().map(|ref arg| {
+            let arg_types: Vec<ArgumentType> = args.iter().map(|ref arg| {
                 match arg.value {
                     Argument::Literal(_) | Argument::Char(_) => {
                         ArgumentType::Literal
