@@ -152,7 +152,7 @@ pub struct Mnemonic(pub Instructions);
 
 impl fmt::Show for Mnemonic {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let Mnemonic(mnem) = *self;
+        let Mnemonic(ref mnem) = *self;
         write!(f, "{}", mnem)
     }
 }

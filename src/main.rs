@@ -1,4 +1,4 @@
-#![feature(phase, macro_rules, slicing_syntax, while_let, if_let, globs)]
+#![feature(phase, macro_rules, slicing_syntax, globs)]
 
 extern crate term;
 extern crate test;

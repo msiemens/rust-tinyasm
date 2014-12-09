@@ -30,7 +30,7 @@ pub enum StateChange {
 macro_rules! fn_execute(
     ($args:ident/unused, $mem:ident, $body:block) => {
         fn execute(&self, $args: &[u8], $mem: &[u8]) -> StateChange {
-            let $args = self.get_args($args, $mem);
+            let $args = self.decode_args($args, $mem);
             $body
         }
     };
@@ -38,7 +38,7 @@ macro_rules! fn_execute(
     ($args:ident / $raw:ident, $mem:ident, $body:block) => {
         fn execute(&self, $args: &[u8], $mem: &[u8]) -> StateChange {
             let $raw = $args;
-            let $args = self.get_args($args, $mem);
+            let $args = self.decode_args($args, $mem);
             debug!("interpreted args: {}", $args);
             $body
         }
@@ -54,13 +54,13 @@ macro_rules! make_instruction(
 
         impl $name {
             #[inline]
-            fn get_args(&self, args: &[u8], mem: &[u8]) -> Vec<u8> {
+            fn decode_args(&self, args: &[u8], mem: &[u8]) -> Vec<u8> {
                 self.arg_types.iter()
                     .zip(args.iter())
-                    .map(|(&ty, &val)| {
-                        match ty {
-                            Argument::Address => mem[val as uint],
-                            Argument::Literal => val
+                    .map(|(ty, val)| {
+                        match *ty {
+                            Argument::Address => mem[*val as uint],
+                            Argument::Literal => *val
                         }
                     }).collect()
             }

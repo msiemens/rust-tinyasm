@@ -7,9 +7,9 @@ pub fn generate_binary(ast: Vec<StatementNode>) -> Vec<Vec<u8>> {
     let mut binary = vec![];
 
     for stmt in ast.iter() {
-        if let Statement::Operation(mnem, ref args) = stmt.value {
+        if let Statement::Operation(ref mnem, ref args) = stmt.value {
             // Get the requested mnemonic
-            let Mnemonic(instr) = mnem;
+            let Mnemonic(instr) = mnem.clone();
 
             // Get the argument types we received
             let arg_types: Vec<ArgumentType> = args.iter().map(|ref arg| {

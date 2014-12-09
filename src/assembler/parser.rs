@@ -215,8 +215,8 @@ impl<'a> Parser<'a> {
     fn parse_operation(&mut self) -> StatementNode {
         let location = self.update_location();
 
-        let mn = if let Token::MNEMONIC(mn) = self.token {
-            Mnemonic(mn)
+        let mn = if let Token::MNEMONIC(ref mn) = self.token {
+            Mnemonic(mn.clone())
         } else {
             self.unexpected_token(&self.token, Some("a mnemonic"))
         };

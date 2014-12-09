@@ -68,11 +68,11 @@ impl fmt::Show for Token {
             Token::LBRACKET   => write!(f, "["),
             Token::RBRACKET   => write!(f, "]"),
 
-            Token::MNEMONIC(instr)  => write!(f, "{}", instr),
-            Token::IDENT(ref ident) => write!(f, "{}", ident),
-            Token::INTEGER(i)       => write!(f, "{}", i),
-            Token::CHAR(c)          => write!(f, "{}", c as char),
-            Token::PATH(ref path)   => write!(f, "{}", path),
+            Token::MNEMONIC(ref instr) => write!(f, "{}", instr),
+            Token::IDENT(ref ident)    => write!(f, "{}", ident),
+            Token::INTEGER(i)          => write!(f, "{}", i),
+            Token::CHAR(c)             => write!(f, "{}", c as char),
+            Token::PATH(ref path)      => write!(f, "{}", path),
 
             Token::EOF         => write!(f, "EOF"),
             Token::PLACEHOLDER => write!(f, "PLACEHOLDER")
