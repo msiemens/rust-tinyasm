@@ -96,7 +96,7 @@ impl<'a> SubroutineExpander<'a> {
             dummy_source()
         ));
 
-        for i in range(0, *self.routines.values().max().unwrap()) {
+        for i in 0 .. *self.routines.values().max().unwrap() {
             self.ast.insert(i + 2, Statement::new(
                 // $arg{i} = [_]
                 Statement::Const(
@@ -197,7 +197,7 @@ impl<'a> SubroutineExpander<'a> {
                     self.ast.insert(i + 1, Statement::new(
                         // MOV $return 0
                         Statement::Operation(
-                            Mnemonic(from_str("MOV").unwrap()),
+                            Mnemonic("MOV".parse().unwrap()),
                             vec![
                                 Argument::new(
                                     Argument::Const(
@@ -222,7 +222,7 @@ impl<'a> SubroutineExpander<'a> {
                     self.ast[i] = Statement::new(
                         // JMP $jump_back
                         Statement::Operation(
-                            Mnemonic(from_str("JMP").unwrap()),
+                            Mnemonic("JMP".parse().unwrap()),
                             vec![
                                 Argument::new(
                                     Argument::Const(
@@ -242,7 +242,7 @@ impl<'a> SubroutineExpander<'a> {
                     self.ast.remove(i);
 
                     // Build arguments
-                    for j in range(0, args.len()) {
+                    for j in 0 .. args.len() {
                         let arg = match args[j].value {
                             MacroArgument::Argument(ref arg) => arg,
                             MacroArgument::Ident(ref ident) => {
@@ -254,7 +254,7 @@ impl<'a> SubroutineExpander<'a> {
                         self.ast.insert(i + j, Statement::new(
                             Statement::Operation(
                                 // MOV arg{i} {arg_i}
-                                Mnemonic(from_str("MOV").unwrap()),
+                                Mnemonic("MOV".parse().unwrap()),
                                 vec![
                                     Argument::new(
                                         Argument::Const(
@@ -273,7 +273,7 @@ impl<'a> SubroutineExpander<'a> {
                     self.ast.insert(i + args.len(), Statement::new(
                         Statement::Operation(
                             // MOV $jump_back :ret{i}
-                            Mnemonic(from_str("MOV").unwrap()),
+                            Mnemonic("MOV".parse().unwrap()),
                             vec![
                                 Argument::new(
                                     Argument::Const(
@@ -296,7 +296,7 @@ impl<'a> SubroutineExpander<'a> {
                     self.ast.insert(i + args.len() + 1, Statement::new(
                         Statement::Operation(
                             // JMP :{name}
-                            Mnemonic(from_str("JMP").unwrap()),
+                            Mnemonic("JMP".parse().unwrap()),
                             vec![
                                 Argument::new(
                                     Argument::Label(

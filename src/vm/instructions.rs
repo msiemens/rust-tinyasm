@@ -43,7 +43,7 @@ macro_rules! fn_execute(
             $body
         }
     };
-)
+);
 
 macro_rules! make_instruction(
     // Actual implementation
@@ -67,7 +67,7 @@ macro_rules! make_instruction(
         }
 
         impl Instruction for $name {
-            fn_execute!($args/$raw, $mem, $body)
+            fn_execute!($args/$raw, $mem, $body);
 
             fn argc(&self) -> uint {
                 $argc
@@ -81,7 +81,7 @@ macro_rules! make_instruction(
         make_instruction!($name($args/$raw[$argc], $mem) {
             let result = $body;
             $ret_type($raw[$mem_arg], result)
-        })
+        });
     };
 
     // Arguments and simple return type
@@ -89,12 +89,12 @@ macro_rules! make_instruction(
         make_instruction!($name($args[$argc], $mem) {
             $body;
             $ret_type
-        })
+        });
     };
 
     // Simple arguments
     ( $name:ident ($args:ident [ $argc:expr ] , $mem:ident) $body:block ) => {
-        make_instruction!($name($args/unused[$argc], $mem) $body)
+        make_instruction!($name($args/unused[$argc], $mem) $body);
     };
 
     // No arguments
@@ -112,88 +112,88 @@ macro_rules! make_instruction(
             }
         }
     };
-)
+);
 
 
-make_instruction!(IHalt { Halt })
+make_instruction!(IHalt { Halt });
 
 
 // Memory Access
 make_instruction!(IMov(args[2], memory) -> ModifyMemory(raw[0]) {
     args[1]
-})
+});
 
 
 // Logic operations
 make_instruction!(IAnd(args[2], memory) -> ModifyMemory(raw[0]) {
     args[0] & args[1]
-})
+});
 
 make_instruction!(IOr(args[2], memory) -> ModifyMemory(raw[0]) {
     args[0] | args[1]
-})
+});
 
 make_instruction!(IXor(args[2], memory) -> ModifyMemory(raw[0]) {
     args[0] ^ args[1]
-})
+});
 
 make_instruction!(INot(args[1], memory) -> ModifyMemory(raw[0]) {
     !args[0]
-})
+});
 
 
 // Math
 make_instruction!(IAdd(args[2], memory) -> ModifyMemory(raw[0]) {
     args[0] + args[1]
-})
+});
 
 make_instruction!(ISub(args[2], memory) -> ModifyMemory(raw[0]) {
     args[0] - args[1]
-})
+});
 
 
 // Control
 make_instruction!(IJmp(args[1], memory) {
     Jump(args[0])
-})
+});
 
 make_instruction!(IJz(args[2], memory) {
     match args[0] {
         0 => Jump(args[0]),
         _ => Continue
     }
-})
+});
 
 make_instruction!(IJeq(args[3], memory) {
     match args[1] == args[2] {
         true => Jump(args[0]),
         false => Continue
     }
-})
+});
 
 make_instruction!(IJls(args[3], memory) {
     match args[1] < args[2] {
         true => Jump(args[0]),
         false => Continue
     }
-})
+});
 
 make_instruction!(IJgt(args[3], memory) {
     match args[1] > args[2] {
         true => Jump(args[0]),
         false => Continue
     }
-})
+});
 
 
 // I/O
 make_instruction!(IAPrint(args[1], memory) -> Continue {
     print!("{:}", args[0] as char);
-})
+});
 
 make_instruction!(IDPrint(args[1], memory) -> Continue {
     print!("{:}", args[0]);
-})
+});
 
 
 // Misc
@@ -201,7 +201,7 @@ make_instruction!(IRandom(args[1], memory) -> ModifyMemory(raw[0]) {
     let mut rand_range = RandRange::new(0u8, 255u8);
     let mut rng = rand::task_rng();
     rand_range.sample(&mut rng)
-})
+});
 
 
 macro_rules! instruction(
@@ -212,7 +212,7 @@ macro_rules! instruction(
     ( $i:ident [ $($t:ident),* ] ) => (
         box $i { arg_types: [$($t),*] } as Box<Instruction>
     );
-)
+);
 
 lazy_static! {
     pub static ref INSTRUCTIONS: HashMap<u8, Box<Instruction + 'static>> = {

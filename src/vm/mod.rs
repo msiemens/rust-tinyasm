@@ -35,7 +35,7 @@ fn run(source: &[u8]) {
         let argv = match argc {
             0 => [][],  // Empty slice
             _ => source[pc + 1 .. pc + 1 + argc]
-        };                                              debug!("argv: {}", argv)
+        };                                              debug!("argv: {}", argv);
         pc += 1 + argc;  // Increment programm counter
 
 

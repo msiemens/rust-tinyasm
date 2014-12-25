@@ -72,7 +72,7 @@ impl<'a> Parser<'a> {
 
     pub fn look_ahead<R>(&mut self, distance: uint, f: |&Token| -> R) -> R {
         if self.buffer.len() < distance {
-            for _ in range(0, distance - self.buffer.len()) {
+            for _ in 0 .. distance - self.buffer.len() {
                 self.buffer.push_back(self.lexer.next_token());
             }
         }
@@ -84,13 +84,13 @@ impl<'a> Parser<'a> {
     pub fn parse(&mut self) -> AST {
         let mut ast = vec![];
 
-        debug!("Starting parsing")
+        debug!("Starting parsing");
 
         while self.token != Token::EOF {
             ast.push(self.parse_statement());
         }
 
-        debug!("Parsing finished")
+        debug!("Parsing finished");
 
         ast
     }

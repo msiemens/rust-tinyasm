@@ -26,21 +26,21 @@ pub fn main(args: Args) {
     let mut ast = parser::Parser::new(source[], filename).parse();
 
     if args.flag_v {
-        println!("AST:")
+        println!("AST:");
         for stmt in ast.iter() {
             println!("{}", stmt);
         }
-        println!("")
+        println!("");
     }
 
     syntax_ext::expand_syntax_extensions(&mut ast);
 
     if args.flag_v {
-        println!("Expanded AST:")
+        println!("Expanded AST:");
         for stmt in ast.iter() {
             println!("{}", stmt);
         }
-        println!("")
+        println!("");
     }
 
     let binary = codegen::generate_binary(ast);

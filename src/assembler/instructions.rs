@@ -6,7 +6,7 @@ use self::Instructions::*;
 use self::ArgumentType::*;
 
 
-#[deriving(PartialEq, Show)]
+#[deriving(PartialEq, Show, Clone)]
 pub enum ArgumentType {
     Address,
     Literal
@@ -42,7 +42,7 @@ macro_rules! make_instructions(
         }
 
     }
-)
+);
 
 make_instructions!(
     AND, OR, XOR, NOT,              // Logic
@@ -50,10 +50,10 @@ make_instructions!(
     RANDOM, ADD, SUB,               // Math
     JMP, JZ, JEQ, JLS, JGT, HALT,   // Control
     APRINT, DPRINT, AREAD           // IO
-)
+);
 
 
-#[deriving(Show)]
+#[deriving(Show, Clone)]
 struct Operation {
     pub opcode: u8,
     pub args: Vec<ArgumentType>
@@ -77,7 +77,7 @@ macro_rules! instructions (
             )*
         }
     )
-)
+);
 
 lazy_static! {
     pub static ref INSTRUCTIONS: InstructionSet = {

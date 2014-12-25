@@ -36,7 +36,7 @@ macro_rules! define(
             $( $variants ( $( $arg ),* ) ),*
         }
     };
-)
+);
 
 
 define!(
@@ -46,7 +46,7 @@ Statement -> StatementNode:
     Const(Ident, ArgumentNode),
     Operation(Mnemonic, Vec<ArgumentNode>),
     Macro(Ident, Vec<MacroArgumentNode>)
-)
+);
 
 impl fmt::Show for Statement {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -82,7 +82,7 @@ Argument -> ArgumentNode:
     Const(Ident),
     Label(Ident),
     Char(u8)
-)
+);
 
 impl fmt::Show for Argument {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -106,7 +106,7 @@ define!(
 MacroArgument -> MacroArgumentNode:
     Argument(ArgumentNode),
     Ident(Ident)
-)
+);
 
 impl fmt::Show for MacroArgument {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -162,13 +162,13 @@ impl fmt::Show for Mnemonic {
 pub struct IPath(pub SharedString);
 
 impl IPath {
-    pub fn from_str(s: &'static str) -> IPath {
+    /*pub fn from_str(s: &'static str) -> IPath {
         IPath(rcstr(s))
-    }
+    }*/
 
-    pub fn from_string(s: String) -> IPath {
+    /*pub fn from_string(s: String) -> IPath {
         IPath(rcstring(s))
-    }
+    }*/
 
     pub fn as_str(&self) -> SharedString {
         let IPath(ref p) = *self;

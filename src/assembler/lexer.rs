@@ -142,19 +142,19 @@ impl<'a> FileLexer<'a> {
         }
     }
 
-    fn nextch_is(&self, c: char) -> bool {
+    /*fn nextch_is(&self, c: char) -> bool {
         self.nextch() == Some(c)
-    }
+    }*/
 
     fn expect(&mut self, expect: char) {
         if self.curr != Some(expect) {
             let expect_str = match expect {
-                '\'' => "quote".into_string(),
+                '\'' => String::from_str("quote"),
                 c => format!("'{}'", c)
             };
             let found_str = match self.curr {
                 Some(_) => format!("'{}'", self.curr_repr()),
-                None => "EOF".into_string()
+                None => String::from_str("EOF")
             };
 
             self.fatal(format!("Expected `{}`, found `{}`",
@@ -179,14 +179,14 @@ impl<'a> FileLexer<'a> {
     fn collect(&mut self, cond: |&char| -> bool) -> SharedString {
         let mut chars = vec![];
 
-        debug!("start colleting")
+        debug!("start colleting");
 
         while let Some(c) = self.curr {
             if cond(&c) {
                 chars.push(c);
                 self.bump();
             } else {
-                debug!("colleting finished")
+                debug!("colleting finished");
                 break;
             }
         }
@@ -208,7 +208,7 @@ impl<'a> FileLexer<'a> {
             c.is_alphabetic() && c.is_uppercase()
         });
 
-        let mnemonic = if let Some(m) = from_str(mnemonic[]) {
+        let mnemonic = if let Some(m) = mnemonic.parse() {
             m
         } else {
             self.fatal(format!("invalid mnemonic: {}", mnemonic))
@@ -234,7 +234,7 @@ impl<'a> FileLexer<'a> {
 
         let integer = self.collect(|c| c.is_numeric());
 
-        let integer = if let Some(m) = from_str(integer[]) {
+        let integer = if let Some(m) = integer.parse() {
             m
         } else {
             self.fatal(format!("invalid integer: {}", integer))
@@ -363,7 +363,7 @@ impl<'a> Lexer for FileLexer<'a> {
         // NOTE: We can't use `for c in self.iter` because then we can't
         //       access `self.iter` inside the body because it's borrowed.
         while !self.is_eof() {
-            debug!("Processing {}", self.curr)
+            debug!("Processing {}", self.curr);
 
             if let Some(t) = self.read_token() {
                 tokens.push(t);

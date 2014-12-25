@@ -3,10 +3,10 @@
 extern crate term;
 extern crate test;
 extern crate seq;
-extern crate serialize;
 #[phase(plugin, link)] extern crate log;
 
 extern crate docopt;
+extern crate "rustc-serialize" as rustc_serialize;
 #[phase(plugin)] extern crate seq_macros;
 #[phase(plugin)] extern crate docopt_macros;
 #[phase(plugin)] extern crate lazy_static;
@@ -27,7 +27,7 @@ Usage: tiny asm [-v] <input>
 
 Options:
     --help  Show this screen.
-")
+");
 
 
 #[cfg(not(test))]

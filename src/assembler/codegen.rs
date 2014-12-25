@@ -31,7 +31,7 @@ pub fn generate_binary(ast: Vec<StatementNode>) -> Vec<Vec<u8>> {
             }).unwrap_or_else(|| {
                 // Build allowed arguments string
                 let allowed_arg_types = instr_class.iter()
-                    .map(|ref i| i.args.clone())
+                    .cloned()
                     .map(|args| format!("{}", args))
                     .collect::<Vec<_>>()
                     .connect(" or ");
