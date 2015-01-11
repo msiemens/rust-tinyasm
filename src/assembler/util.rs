@@ -1,4 +1,3 @@
-#![macro_escape]
 use term;
 use std;
 use std::rc::Rc;
@@ -17,20 +16,22 @@ pub fn rcstring(s: String) -> SharedString {
 }
 
 
+#[macro_export]
 macro_rules! overflow_check(
-    ($val:expr @ $stmt:expr) => (
-        if $val > 255 { warn!("overflow: {} > 255", $val @ $stmt) }
+    ($val:expr, $stmt:expr) => (
+        if $val > 255 { warn!("overflow: {} > 255", $val; $stmt) }
     )
 );
 
 
+#[macro_export]
 macro_rules! fatal(
-    ($msg:expr, $($args:expr),* @ $stmt:expr) => {
+    ($msg:expr, $($args:expr),* ; $stmt:expr) => {
         fatal(format!($msg, $($args),*), &$stmt.location)
     };
 
-    ($msg:expr @ $stmt:expr) => {
-        fatal($msg.into_cow().into_owned(), &$stmt.location)
+    ($msg:expr ; $stmt:expr) => {
+        fatal($msg.to_string(), &$stmt.location)
     };
 );
 
@@ -46,13 +47,14 @@ pub fn fatal(msg: String, source: &SourceLocation) -> ! {
 
     t.reset().unwrap();
 
-    std::io::stdio::set_stderr(box std::io::util::NullWriter);
+    std::io::stdio::set_stderr(Box::new(std::io::util::NullWriter));
     panic!();
 }
 
 
+#[macro_export]
 macro_rules! warn(
-    ($msg:expr, $($args:expr),* @ $stmt:expr ) => {
+    ($msg:expr, $($args:expr),* ; $stmt:expr ) => {
         warn(format!($msg, $($args),*), &$stmt.location)
     }
 );

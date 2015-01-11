@@ -16,7 +16,7 @@ pub fn expand(ast: &mut AST) {
 }
 
 
-#[deriving(Show, Clone, Eq, PartialEq)]
+#[derive(Show, Clone, Eq, PartialEq)]
 enum SubroutineState {
     SubroutineStart(Ident),
     InSubroutine,
@@ -27,7 +27,7 @@ enum SubroutineState {
 
 struct SubroutineExpander<'a> {
     ast: &'a mut AST,
-    routines: HashMap<Ident, uint>
+    routines: HashMap<Ident, usize>
 }
 
 impl<'a> SubroutineExpander<'a> {
@@ -40,33 +40,30 @@ impl<'a> SubroutineExpander<'a> {
             };
 
 
-            if ident.as_str()[] == "start" {
+            if *ident.as_str() == "start" {
                 if args.len() != 2 {
                     fatal!("invalid number of Argument::s for @start: {}",
-                           args.len() @ stmt)
+                           args.len(); stmt)
                 }
 
                 let name = if let MacroArgument::Ident(ref name) = args[0].value {
                     name.clone()
                 } else {
-                    fatal!("expected subroutine name, got {}",
-                           args[0] @ stmt)
+                    fatal!("expected subroutine name, got {}", args[0]; stmt)
                 };
 
                 let argc = if let MacroArgument::Argument(ref arg) = args[1].value {
                     if let Argument::Literal(argc) = arg.value {
-                        argc as uint
+                        argc as usize
                     } else {
-                        fatal!("expected argument count, got {}",
-                               args[1] @ stmt)
+                        fatal!("expected argument count, got {}", args[1]; stmt)
                     }
                 } else {
-                    fatal!("expected argument count, got {}",
-                           args[1] @ stmt)
+                    fatal!("expected argument count, got {}", args[1]; stmt)
                 };
 
                 if self.routines.insert(name, argc).is_some() {
-                    fatal!("redefinition of subroutine: {}", args[0] @ stmt)
+                    fatal!("redefinition of subroutine: {}", args[0]; stmt)
                 };
             }
         }
@@ -123,54 +120,49 @@ impl<'a> SubroutineExpander<'a> {
 
             state = match self.ast[i].value {
                 Statement::Macro(ref ident, ref args) => {
-                    match ident.as_str()[] {
+                    match &**ident.as_str() {
                         "start" => {
                             if state == InSubroutine {
                                 // Invalid state, shouldn't happen
-                                fatal!("cannot nest subroutines" @ self.ast[i]);
+                                fatal!("subroutines"; self.ast[i]);
                             }
 
                             // Get subroutine name
                             let ident = if let MacroArgument::Ident(ref ident) = args[0].value {
                                 ident.clone()
                             } else {
-                                fatal!("expected subroutine name, found `{}`",
-                                       args[0].value @ args[0]);
+                                fatal!("expected subroutine name, found `{}`", args[0].value; args[0]);
                             };
 
                             SubroutineStart(ident)
                         },
                         "end" => {
                             if args.len() > 0 {
-                                fatal!("@end takes no Argument::s" @ args[0]);
+                                fatal!("@end takes no s"; args[0]);
                             }
 
                             SubroutineEnd
                         },
                         "call" => {
                             if args.len() == 0 {
-                                fatal!("expected (name, args...), found `)`"
-                                       @ self.ast[i]);
+                                fatal!("expected (name, args...), found `)`"; self.ast[i]);
                             }
 
                             // Get subroutine name
                             let ident = if let MacroArgument::Ident(ref ident) = args[0].value {
                                 ident.clone()
                             } else {
-                                fatal!("expected subroutine name, found `{}`",
-                                       args[0] @ args[0]);
+                                fatal!("expected subroutine name, found `{}`", args[0]; args[0]);
                             };
 
                             // Get expected argument count
                             let routine_argc = *self.routines.get(&ident).unwrap_or_else(|| {
-                                fatal!("unknown subroutine: {}", ident
-                                       @ self.ast[i]);
+                                fatal!("unknown subroutine: {}", ident; self.ast[i]);
                             });
 
                             if args.len() - 1 != routine_argc {
                                 fatal!("wrong argument count: found {} Argument::s, expected {}",
-                                       args.len() - 1, routine_argc
-                                       @ args[0]);
+                                       args.len() - 1, routine_argc; args[0]);
                             }
 
                             // Get Argument::s (cloned)
@@ -246,8 +238,7 @@ impl<'a> SubroutineExpander<'a> {
                         let arg = match args[j].value {
                             MacroArgument::Argument(ref arg) => arg,
                             MacroArgument::Ident(ref ident) => {
-                                fatal!("expected argument, got `{}`", ident
-                                       @ args[j])
+                                fatal!("expected argument, got `{}`", ident; args[j])
                             }
                         };
 
@@ -336,7 +327,7 @@ impl<'a> SubroutineExpander<'a> {
         // Build preamble
         self.build_preamble();
 
-        debug!("Subroutines: {}", self.routines);
+        debug!("Subroutines: {:?}", self.routines);
 
         // Pass 2: Replace function definitions
         self.process_macros();

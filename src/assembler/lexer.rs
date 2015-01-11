@@ -5,10 +5,10 @@ use assembler::instructions::Instructions;
 use assembler::util::{fatal, rcstr, SharedString};
 
 
-#[deriving(PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone)]
 pub struct SourceLocation {
     pub filename: SharedString,
-    pub lineno: uint
+    pub lineno: usize
 }
 
 impl fmt::Show for SourceLocation {
@@ -16,6 +16,13 @@ impl fmt::Show for SourceLocation {
         write!(f, "{}:{}", self.filename, self.lineno)
     }
 }
+
+impl fmt::String for SourceLocation {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 
 pub fn dummy_source() -> SourceLocation {
     SourceLocation {
@@ -25,7 +32,7 @@ pub fn dummy_source() -> SourceLocation {
 }
 
 
-#[deriving(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Token {
     HASH,
     COLON,
@@ -68,15 +75,21 @@ impl fmt::Show for Token {
             Token::LBRACKET   => write!(f, "["),
             Token::RBRACKET   => write!(f, "]"),
 
-            Token::MNEMONIC(ref instr) => write!(f, "{}", instr),
-            Token::IDENT(ref ident)    => write!(f, "{}", ident),
+            Token::MNEMONIC(ref instr) => write!(f, "{:?}", instr),
+            Token::IDENT(ref ident)    => write!(f, "{:?}", ident),
             Token::INTEGER(i)          => write!(f, "{}", i),
             Token::CHAR(c)             => write!(f, "{}", c as char),
-            Token::PATH(ref path)      => write!(f, "{}", path),
+            Token::PATH(ref path)      => write!(f, "{:?}", path),
 
             Token::EOF         => write!(f, "EOF"),
             Token::PLACEHOLDER => write!(f, "PLACEHOLDER")
         }
+    }
+}
+
+impl fmt::String for Token {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
     }
 }
 
@@ -91,10 +104,10 @@ pub trait Lexer {
 pub struct FileLexer<'a> {
     source: &'a str,
     file: SharedString,
-    len: uint,
-    pos: uint,
+    len: usize,
+    pos: usize,
     curr: Option<char>,
-    lineno: uint
+    lineno: usize
 }
 
 impl<'a> FileLexer<'a> {
@@ -123,7 +136,7 @@ impl<'a> FileLexer<'a> {
         self.curr = self.nextch();
         self.pos += 1;
 
-        debug!("Moved on to {}", self.curr)
+        debug!("Moved on to {:?}", self.curr)
     }
 
     fn nextch(&self) -> Option<char> {
@@ -168,7 +181,7 @@ impl<'a> FileLexer<'a> {
         match self.curr {
             Some(c) => {
                 let repr: Vec<char> = c.escape_default().collect();
-                Rc::new(String::from_chars(repr[]))
+                Rc::new(repr.iter().cloned().collect::<String>())
             },
             None => rcstr("EOF")
         }
@@ -176,7 +189,7 @@ impl<'a> FileLexer<'a> {
 
 
     /// Collect a series of chars starting at the current character
-    fn collect(&mut self, cond: |&char| -> bool) -> SharedString {
+    fn collect<F>(&mut self, cond: F) -> SharedString where F: Fn(&char) -> bool {
         let mut chars = vec![];
 
         debug!("start colleting");
@@ -191,10 +204,10 @@ impl<'a> FileLexer<'a> {
             }
         }
 
-        Rc::new(String::from_chars(chars[]))
+        Rc::new(chars.iter().cloned().collect::<String>())
     }
 
-    fn eat_all(&mut self, cond: |&char| -> bool) {
+    fn eat_all<F>(&mut self, cond: F) where F: Fn(&char) -> bool {
         while let Some(c) = self.curr {
             if cond(&c) { self.bump(); }
             else { break; }
@@ -363,13 +376,13 @@ impl<'a> Lexer for FileLexer<'a> {
         // NOTE: We can't use `for c in self.iter` because then we can't
         //       access `self.iter` inside the body because it's borrowed.
         while !self.is_eof() {
-            debug!("Processing {}", self.curr);
+            debug!("Processing {:?}", self.curr);
 
             if let Some(t) = self.read_token() {
                 tokens.push(t);
             }
 
-            debug!("So far: {}", tokens)
+            debug!("So far: {:?}", tokens)
         }
 
         tokens
@@ -383,17 +396,15 @@ impl Lexer for Vec<Token> {
     }
 
     fn next_token(&mut self) -> Token {
-        match self.remove(0) {
-            Some(tok) => tok,
-            None => Token::EOF
+        if self.len() >= 1 {
+            self.remove(0)
+        } else {
+            Token::EOF
         }
     }
 
     fn tokenize(&mut self) -> Vec<Token> {
-        let mut v = vec![];
-        v.push_all(self[]);
-
-        v
+        self.iter().cloned().collect()
     }
 }
 

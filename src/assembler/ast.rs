@@ -10,7 +10,7 @@ pub type AST = Vec<StatementNode>;
 // FIXME: Find better wrapper names
 macro_rules! define(
     ( $name:ident -> $wrapper:ident : $( $variants:ident ( $( $arg:ty ),* ) ),* ) => {
-        #[deriving(PartialEq, Eq, Clone)]
+        #[derive(PartialEq, Eq, Clone)]
         pub struct $wrapper {
             pub value: $name,
             pub location: SourceLocation
@@ -31,7 +31,13 @@ macro_rules! define(
             }
         }
 
-        #[deriving(PartialEq, Eq, Clone)]
+        impl fmt::String for $wrapper {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                write!(f, "{:?}", self)
+            }
+        }
+
+        #[derive(PartialEq, Eq, Clone)]
         pub enum $name {
             $( $variants ( $( $arg ),* ) ),*
         }
@@ -74,6 +80,12 @@ impl fmt::Show for Statement {
     }
 }
 
+impl fmt::String for Statement {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 
 define!(
 Argument -> ArgumentNode:
@@ -101,6 +113,12 @@ impl fmt::Show for Argument {
     }
 }
 
+impl fmt::String for Argument {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 
 define!(
 MacroArgument -> MacroArgumentNode:
@@ -117,8 +135,14 @@ impl fmt::Show for MacroArgument {
     }
 }
 
+impl fmt::String for MacroArgument {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
 
-#[deriving(PartialEq, Eq, Hash, Clone)]
+
+#[derive(PartialEq, Eq, Hash, Clone)]
 pub struct Ident(pub SharedString);
 
 impl Ident {
@@ -146,19 +170,31 @@ impl fmt::Show for Ident {
     }
 }
 
+impl fmt::String for Ident {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
 
-#[deriving(PartialEq, Eq, Clone)]
+
+#[derive(PartialEq, Eq, Clone)]
 pub struct Mnemonic(pub Instructions);
 
 impl fmt::Show for Mnemonic {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let Mnemonic(ref mnem) = *self;
-        write!(f, "{}", mnem)
+        write!(f, "{:?}", mnem)
+    }
+}
+
+impl fmt::String for Mnemonic {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
     }
 }
 
 
-#[deriving(PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone)]
 pub struct IPath(pub SharedString);
 
 impl IPath {
@@ -180,5 +216,11 @@ impl fmt::Show for IPath {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let IPath(ref path) = *self;
         write!(f, "<{}>", path)
+    }
+}
+
+impl fmt::String for IPath {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
     }
 }

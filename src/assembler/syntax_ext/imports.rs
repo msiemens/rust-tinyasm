@@ -14,11 +14,10 @@ pub fn expand(ast: &mut AST) {
         let mut included_ast = if let Statement::Include(ref include) = ast[i].value {
             let path = Path::new(&*ast[i].location.filename);
             let dir = Path::new(path.dirname());
-            let to_include = dir.join(include.as_str()[]);
+            let to_include = dir.join(&*include.as_str());
 
             if last_file == Some(to_include.clone()) {
-                fatal!("circular import of {}", to_include.display()
-                        @ ast[i]);
+                fatal!("circular import of {}", to_include.display(); ast[i]);
             }
 
             last_file = Some(to_include.clone());
@@ -26,10 +25,9 @@ pub fn expand(ast: &mut AST) {
             let contents = File::open(&to_include)
                 .read_to_string()
                 .unwrap_or_else(|e| {
-                    fatal!("cannot read {}: {}", to_include.display(), e
-                           @ ast[i]);
+                    fatal!("cannot read {}: {}", to_include.display(), e; ast[i]);
                 });
-            let mut parser = Parser::new(contents[], to_include.as_str().unwrap());
+            let mut parser = Parser::new(&*contents, to_include.as_str().unwrap());
 
             parser.parse()
 
@@ -41,7 +39,7 @@ pub fn expand(ast: &mut AST) {
         ast.remove(i);
 
         for j in range(0, included_ast.len()) {
-            ast.insert(i + j, included_ast.remove(0).unwrap());
+            ast.insert(i + j, included_ast.remove(0));
         }
     }
 }

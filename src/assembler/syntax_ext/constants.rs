@@ -18,16 +18,16 @@ pub fn expand(ast: &mut AST) {
         match value.value {
             Argument::Literal(_) | Argument::Address(_) => {
                 if consts.insert(name.clone(), value.value.clone()).is_some() {
-                    warn!("redefinition of ${}", name @ value);
+                    warn!("redefinition of ${:?}", name; value);
                 }
             },
-            _ => fatal!("invalid constant value: {}", value @ value)
+            _ => fatal!("invalid constant value: {:?}", value; value)
         }
 
         false  // Remove this statement from the AST
     });
 
-    debug!("Constants: {}", consts);
+    debug!("Constants: {:?}", consts);
 
     // Pass 2: Replace constant usages
     for stmt in ast.iter_mut() {
@@ -42,7 +42,7 @@ pub fn expand(ast: &mut AST) {
             arg.value = if let Argument::Const(ref name) = arg.value {
                 match consts.get(name) {
                     Some(value) => value.clone(),
-                    None => fatal!("unknown constant: ${}", name @ arg)
+                    None => fatal!("unknown constant: ${:?}", name; arg)
                 }
             } else {
                 continue

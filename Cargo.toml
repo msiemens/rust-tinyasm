@@ -23,8 +23,8 @@ debug = true
 
 
 [dependencies]
-docopt_macros = "~0.6.19"
-lazy_static = "~0.1.2"
+docopt_macros = "~0.6.23"
+lazy_static = "~0.1.4"
 
 [dependencies.seq]
 git = "https://github.com/japaric/seq.rs.git"

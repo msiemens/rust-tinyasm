@@ -20,24 +20,24 @@ pub fn generate_binary(ast: Vec<StatementNode>) -> Vec<Vec<u8>> {
                     Argument::Address(_) => {
                         ArgumentType::Address
                     },
-                    _ => fatal!("unprocessed argument: {}", arg @ arg)
+                    _ => fatal!("unprocessed argument: {}", arg; arg)
                 }
             }).collect();
 
             // Find the opcode matching the given argument types
             let instr_class = INSTRUCTIONS.get(&instr).unwrap();
-            let op = instr_class.iter().find(|op| {
+            let op = instr_class.iter().find(|&: op| {
                 op.args == arg_types
-            }).unwrap_or_else(|| {
+            }).unwrap_or_else(|&:| {
                 // Build allowed arguments string
                 let allowed_arg_types = instr_class.iter()
                     .cloned()
-                    .map(|args| format!("{}", args))
+                    .map(|&: args| format!("{:?}", args))
                     .collect::<Vec<_>>()
                     .connect(" or ");
 
-                fatal!("invalid arguments for {}: found {}, allowed: {}",
-                       instr, arg_types, allowed_arg_types @ stmt)
+                fatal!("invalid arguments for {:?}: found {:?}, allowed: {:?}",
+                       instr, arg_types, allowed_arg_types; stmt)
             });
 
             // Finally, write the opcode
@@ -48,13 +48,13 @@ pub fn generate_binary(ast: Vec<StatementNode>) -> Vec<Vec<u8>> {
                     Argument::Char(c) => c,
                     Argument::Address(a) => a.unwrap(),
                     // Shouldn't happen as we check this in arg_types
-                    _ => fatal!("unprocessed argument: {}", arg @ arg)
+                    _ => fatal!("unprocessed argument: {}", arg; arg)
                 }
             }));
 
             binary.push(binary_stmt);
         } else {
-            fatal!("unprocessed operation: {}", stmt @ stmt)
+            fatal!("unprocessed operation: {}", stmt; stmt)
         }
     }
 

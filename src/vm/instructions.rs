@@ -10,10 +10,10 @@ pub use self::StateChange::*;
 
 pub trait Instruction {
     fn execute(&self, &[u8], &[u8]) -> StateChange;
-    fn argc(&self) -> uint;
+    fn argc(&self) -> usize;
 }
 
-#[deriving(Show)]
+#[derive(Show)]
 pub enum Argument {
     Address,
     Literal
@@ -39,7 +39,7 @@ macro_rules! fn_execute(
         fn execute(&self, $args: &[u8], $mem: &[u8]) -> StateChange {
             let $raw = $args;
             let $args = self.decode_args($args, $mem);
-            debug!("interpreted args: {}", $args);
+            debug!("interpreted args: {:?}", $args);
             $body
         }
     };
@@ -49,7 +49,7 @@ macro_rules! make_instruction(
     // Actual implementation
     ( $name:ident ($args:ident / $raw:ident [ $argc:expr ] , $mem:ident) $body:block ) => {
         pub struct $name {
-            arg_types: [Argument, ..$argc]
+            arg_types: [Argument; $argc]
         }
 
         impl $name {
@@ -59,7 +59,7 @@ macro_rules! make_instruction(
                     .zip(args.iter())
                     .map(|(ty, val)| {
                         match *ty {
-                            Argument::Address => mem[*val as uint],
+                            Argument::Address => mem[*val as usize],
                             Argument::Literal => *val
                         }
                     }).collect()
@@ -69,7 +69,7 @@ macro_rules! make_instruction(
         impl Instruction for $name {
             fn_execute!($args/$raw, $mem, $body);
 
-            fn argc(&self) -> uint {
+            fn argc(&self) -> usize {
                 $argc
             }
         }
@@ -107,7 +107,7 @@ macro_rules! make_instruction(
                 $body
             }
 
-            fn argc(&self) -> uint {
+            fn argc(&self) -> usize {
                 0
             }
         }
@@ -199,7 +199,7 @@ make_instruction!(IDPrint(args[1], memory) -> Continue {
 // Misc
 make_instruction!(IRandom(args[1], memory) -> ModifyMemory(raw[0]) {
     let mut rand_range = RandRange::new(0u8, 255u8);
-    let mut rng = rand::task_rng();
+    let mut rng = rand::thread_rng();
     rand_range.sample(&mut rng)
 });
 

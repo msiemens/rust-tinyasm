@@ -1,15 +1,14 @@
-#![feature(phase, macro_rules, slicing_syntax, globs)]
+#![feature(plugin, slicing_syntax)]
 
 extern crate term;
 extern crate test;
-extern crate seq;
-#[phase(plugin, link)] extern crate log;
+#[plugin] #[macro_use] extern crate log;
 
 extern crate docopt;
 extern crate "rustc-serialize" as rustc_serialize;
-#[phase(plugin)] extern crate seq_macros;
-#[phase(plugin)] extern crate docopt_macros;
-#[phase(plugin)] extern crate lazy_static;
+#[plugin] #[macro_use] extern crate seq;
+#[plugin] #[macro_use] extern crate docopt_macros;
+#[plugin] #[macro_use] extern crate lazy_static;
 
 
 use docopt::Docopt;
@@ -19,7 +18,7 @@ mod assembler;
 mod vm;
 
 
-docopt!(Args deriving Show, "
+docopt!(Args derive Show, "
 Usage: tiny asm [-v] <input>
        tiny asm [-v] --bin <input> <output>
        tiny vm <input>

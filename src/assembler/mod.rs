@@ -4,7 +4,7 @@ use std::io::{Open, Write};
 #[cfg(not(test))] use super::Args;
 
 
-mod util;
+#[macro_use] mod util;
 mod instructions;
 mod ast;
 mod lexer;
@@ -23,7 +23,7 @@ pub fn main(args: Args) {
     };
     let filename = source_file.str_components().last().unwrap().unwrap();
 
-    let mut ast = parser::Parser::new(source[], filename).parse();
+    let mut ast = parser::Parser::new(&*source, filename).parse();
 
     if args.flag_v {
         println!("AST:");
@@ -49,7 +49,7 @@ pub fn main(args: Args) {
         let mut file = File::open_mode(&Path::new(args.arg_output), Open, Write);
         for stmt in binary.iter() {
             for b in stmt.iter() {
-                match file.write([*b][]).err() {
+                match file.write(&[*b]).err() {
                     Some(e) => panic!("Cannot write to output file: {}", e),
                     None => {}
                 }

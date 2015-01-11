@@ -17,7 +17,7 @@ pub struct Parser<'a> {
 
 impl<'a> Parser<'a> {
     pub fn new(source: &'a str, file: &'a str) -> Parser<'a> {
-        Parser::with_lexer(box FileLexer::new(source, file))
+        Parser::with_lexer(Box::new(FileLexer::new(source, file)))
     }
 
     pub fn with_lexer(lx: Box<Lexer + 'a>) -> Parser<'a> {
@@ -70,7 +70,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn look_ahead<R>(&mut self, distance: uint, f: |&Token| -> R) -> R {
+    pub fn look_ahead<F, R>(&mut self, distance: usize, f: F) -> R where F: Fn(&Token) -> R {
         if self.buffer.len() < distance {
             for _ in 0 .. distance - self.buffer.len() {
                 self.buffer.push_back(self.lexer.next_token());
@@ -282,8 +282,8 @@ mod tests {
 
     use super::*;
 
-    fn parse<'a, T>(toks: Vec<Token>, f: |&mut Parser<'a>| -> T) -> T {
-        f(&mut Parser::with_lexer(box toks as Box<Lexer>))
+    fn parse<'a, F, T>(toks: Vec<Token>, f: F) -> T where F: Fn(&mut Parser<'a>) -> T {
+        f(&mut Parser::with_lexer(Box::new(toks) as Box<Lexer>))
     }
 
     #[test]
