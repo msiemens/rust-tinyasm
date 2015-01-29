@@ -1,5 +1,5 @@
-use std::io::{Open, Write};
-#[cfg(not(test))] use std::io::File;
+use std::old_io::{Open, Write};
+#[cfg(not(test))] use std::old_io::File;
 
 #[cfg(not(test))] use super::Args;
 

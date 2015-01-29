@@ -47,7 +47,7 @@ pub fn fatal(msg: String, source: &SourceLocation) -> ! {
 
     t.reset().unwrap();
 
-    std::io::stdio::set_stderr(Box::new(std::io::util::NullWriter));
+    std::old_io::stdio::set_stderr(Box::new(std::old_io::util::NullWriter));
     panic!();
 }
 

@@ -2,57 +2,59 @@
 name = "tiny-asm"
 version = "0.0.1"
 dependencies = [
- "docopt_macros 0.6.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "lazy_static 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "docopt 0.6.32 (registry+https://github.com/rust-lang/crates.io-index)",
+ "docopt_macros 0.6.32 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "seq 0.0.0 (git+https://github.com/japaric/seq.rs.git)",
 ]
 
 [[package]]
 name = "collect"
-version = "0.0.14"
-source = "git+https://github.com/gankro/collect-rs#38f00dcebd177ab747c429b537f5065ce6e3c816"
+version = "0.0.16"
+source = "git+https://github.com/gankro/collect-rs#5cd4cd33562a33de897ece0ffb9783db6220600f"
 dependencies = [
  "traverse 0.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "docopt"
-version = "0.6.30"
+version = "0.6.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "regex 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustc-serialize 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "regex 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "docopt_macros"
-version = "0.6.30"
+version = "0.6.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "docopt 0.6.30 (registry+https://github.com/rust-lang/crates.io-index)",
+ "docopt 0.6.32 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "lazy_static"
-version = "0.1.6"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "regex"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "rustc-serialize"
-version = "0.2.7"
+version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "seq"
 version = "0.0.0"
-source = "git+https://github.com/japaric/seq.rs.git#2ed134471d6450e7dccf4044aa45362dff7f4353"
+source = "git+https://github.com/japaric/seq.rs.git#a283838818df4457b3fcedc5aa042d2aa85ace9e"
 dependencies = [
- "collect 0.0.14 (git+https://github.com/gankro/collect-rs)",
+ "collect 0.0.16 (git+https://github.com/gankro/collect-rs)",
 ]
 
 [[package]]

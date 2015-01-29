@@ -4,10 +4,10 @@ extern crate term;
 extern crate test;
 #[plugin] #[macro_use] extern crate log;
 
-extern crate docopt;
 extern crate "rustc-serialize" as rustc_serialize;
+extern crate docopt;
+#[plugin] #[no_link]   extern crate docopt_macros;
 #[plugin] #[macro_use] extern crate seq;
-#[plugin] #[macro_use] extern crate docopt_macros;
 #[plugin] #[macro_use] extern crate lazy_static;
 
 

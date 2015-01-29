@@ -1,4 +1,4 @@
-use std::io::File;
+use std::old_io::File;
 
 use assembler::ast::{AST, Statement};
 use assembler::parser::Parser;

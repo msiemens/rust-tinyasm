@@ -1,4 +1,4 @@
-use std::io::File;
+use std::old_io::File;
 
 use super::Args;
 use self::instructions::{INSTRUCTIONS, ModifyMemory, Jump, Halt, Continue};
