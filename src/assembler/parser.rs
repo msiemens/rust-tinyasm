@@ -291,7 +291,7 @@ mod tests {
         assert_eq!(
             parse(
                 vec![HASH, IDENT(rcstr("import")), PATH(rcstr("as/d")),
-                     MNEMONIC(from_str("HALT").unwrap())],
+                     MNEMONIC("HALT".parse().unwrap())],
                 |p| p.parse()
             ),
             vec![
@@ -303,7 +303,7 @@ mod tests {
                 ),
                 Statement::new(
                     Statement::Operation(
-                        Mnemonic(from_str("HALT").unwrap()),
+                        Mnemonic("HALT".parse().unwrap()),
                         vec![]
                     ),
                     dummy_source()
@@ -361,11 +361,11 @@ mod tests {
     #[test]
     fn test_operation() {
         assert_eq!(
-            parse(vec![MNEMONIC(from_str("MOV").unwrap()), INTEGER(0)],
+            parse(vec![MNEMONIC("MOV".parse().unwrap()), INTEGER(0)],
                   |p| p.parse_statement()),
             Statement::new(
                 Statement::Operation(
-                    Mnemonic(from_str("MOV").unwrap()),
+                    Mnemonic("MOV".parse().unwrap()),
                     vec![
                         Argument::new(
                             Argument::Literal(0),
@@ -523,13 +523,13 @@ mod tests {
     #[test]
     fn test_op_and_const() {
         assert_eq!(
-            parse(vec![MNEMONIC(from_str("HALT").unwrap()),
+            parse(vec![MNEMONIC("HALT".parse().unwrap()),
                        DOLLAR, IDENT(rcstr("c")), EQ, INTEGER(0)],
                   |p| p.parse()),
             vec![
                 Statement::new(
                     Statement::Operation(
-                        Mnemonic(from_str("HALT").unwrap()),
+                        Mnemonic("HALT".parse().unwrap()),
                         vec![]
                     ),
                     dummy_source()

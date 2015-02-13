@@ -6,17 +6,19 @@ use self::Instructions::*;
 use self::ArgumentType::*;
 
 
-#[derive(PartialEq, Show, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum ArgumentType {
     Address,
     Literal
 }
 
 impl FromStr for ArgumentType {
-    fn from_str(s: &str) -> Option<ArgumentType> {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<ArgumentType, ()> {
         match s.char_at(0) {
-            '[' => Some(Address),
-            _   => Some(Literal)
+            '[' => Ok(Address),
+            _   => Ok(Literal)
         }
     }
 }
@@ -25,18 +27,20 @@ impl FromStr for ArgumentType {
 macro_rules! make_instructions(
     ( $( $op:ident ),* ) => {
 
-        #[derive(Clone, PartialEq, Eq, Show, Hash)]
+        #[derive(Clone, PartialEq, Eq, Debug, Hash)]
         pub enum Instructions {
             $( $op ),*
         }
 
         impl FromStr for Instructions {
-            fn from_str(s: &str) -> Option<Instructions> {
+            type Err = String;
+
+            fn from_str(s: &str) -> Result<Instructions, String> {
                 match &*(s.to_ascii_uppercase()) {
                     $(
-                        stringify!($op) => Some($op),
+                        stringify!($op) => Ok($op),
                     )*
-                    _ => None
+                    _ => Err(format!("Invalid instruction: {}", s))
                 }
             }
         }
@@ -53,7 +57,7 @@ make_instructions!(
 );
 
 
-#[derive(Show, Clone)]
+#[derive(Debug, Clone)]
 struct Operation {
     pub opcode: u8,
     pub args: Vec<ArgumentType>

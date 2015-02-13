@@ -1,14 +1,26 @@
 #![feature(plugin, slicing_syntax)]
 
+#![feature(rustc_private)]
+#![feature(test)]
+#![feature(collections)]
+#![feature(io)]
+#![feature(fs)]
+#![feature(hash)]
+#![feature(core)]
+#![feature(path)]
+
+#![plugin(docopt_macros)]
+
+extern crate ansi_term;
+extern crate rand;
 extern crate term;
 extern crate test;
-#[plugin] #[macro_use] extern crate log;
+#[macro_use] extern crate log;
 
 extern crate "rustc-serialize" as rustc_serialize;
 extern crate docopt;
-#[plugin] #[no_link]   extern crate docopt_macros;
-#[plugin] #[macro_use] extern crate seq;
-#[plugin] #[macro_use] extern crate lazy_static;
+#[macro_use] extern crate seq;
+#[macro_use] extern crate lazy_static;
 
 
 use docopt::Docopt;
@@ -18,7 +30,7 @@ mod assembler;
 mod vm;
 
 
-docopt!(Args derive Show, "
+docopt!(Args derive Debug, "
 Usage: tiny asm [-v] <input>
        tiny asm [-v] --bin <input> <output>
        tiny vm <input>

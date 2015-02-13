@@ -1,7 +1,7 @@
 use std::collections::HashMap;
-use std::rand::distributions::Sample;
-use std::rand::distributions::Range as RandRange;
-use std::rand;
+use rand::distributions::Sample;
+use rand::distributions::Range as RandRange;
+use rand;
 
 use self::Argument::*;
 
@@ -13,7 +13,10 @@ pub trait Instruction {
     fn argc(&self) -> usize;
 }
 
-#[derive(Show)]
+unsafe impl Sync for Box<Instruction + 'static> {}
+
+
+#[derive(Debug)]
 pub enum Argument {
     Address,
     Literal

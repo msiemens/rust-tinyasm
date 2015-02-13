@@ -49,7 +49,7 @@ pub fn main(args: Args) {
         let mut file = File::open_mode(&Path::new(args.arg_output), Open, Write);
         for stmt in binary.iter() {
             for b in stmt.iter() {
-                match file.write(&[*b]).err() {
+                match file.write_all(&[*b]).err() {
                     Some(e) => panic!("Cannot write to output file: {}", e),
                     None => {}
                 }

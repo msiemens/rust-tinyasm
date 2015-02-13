@@ -1,6 +1,6 @@
-use term;
-use std;
 use std::rc::Rc;
+
+use ansi_term::Colour::{Red, Yellow};
 
 use assembler::lexer::SourceLocation;
 
@@ -36,18 +36,7 @@ macro_rules! fatal(
 );
 
 pub fn fatal(msg: String, source: &SourceLocation) -> ! {
-    let mut t = term::stdout().unwrap();
-
-    t.fg(term::color::RED).unwrap();
-    (write!(t, "Error ")).unwrap();
-
-    t.reset().unwrap();
-    (write!(t, "in {}: ", source)).unwrap();
-    (write!(t, "{}\n", msg)).unwrap();
-
-    t.reset().unwrap();
-
-    std::old_io::stdio::set_stderr(Box::new(std::old_io::util::NullWriter));
+    println!("{} in {}: {}", Red.paint("Error"), source, msg);
     panic!();
 }
 
@@ -60,14 +49,5 @@ macro_rules! warn(
 );
 
 pub fn warn(msg: String, source: &SourceLocation) {
-    let mut t = term::stdout().unwrap();
-
-    t.fg(term::color::YELLOW).unwrap();
-    (write!(t, "Warning ")).unwrap();
-
-    t.reset().unwrap();
-    (write!(t, "in {}: ", source)).unwrap();
-    (write!(t, "{}\n", msg)).unwrap();
-
-    t.reset().unwrap();
+    println!("{} in {}: {}", Yellow.paint("Warning"), source, msg);
 }

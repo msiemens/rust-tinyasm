@@ -11,13 +11,13 @@ pub struct SourceLocation {
     pub lineno: usize
 }
 
-impl fmt::Show for SourceLocation {
+impl fmt::Debug for SourceLocation {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}:{}", self.filename, self.lineno)
     }
 }
 
-impl fmt::String for SourceLocation {
+impl fmt::Display for SourceLocation {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }
@@ -59,7 +59,7 @@ pub enum Token {
     //UNKNOWN(String)
 }
 
-impl fmt::Show for Token {
+impl fmt::Debug for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Token::HASH       => write!(f, "#"),
@@ -87,7 +87,7 @@ impl fmt::Show for Token {
     }
 }
 
-impl fmt::String for Token {
+impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }
@@ -221,7 +221,7 @@ impl<'a> FileLexer<'a> {
             c.is_alphabetic() && c.is_uppercase()
         });
 
-        let mnemonic = if let Some(m) = mnemonic.parse() {
+        let mnemonic = if let Ok(m) = mnemonic.parse() {
             m
         } else {
             self.fatal(format!("invalid mnemonic: {}", mnemonic))
@@ -247,7 +247,7 @@ impl<'a> FileLexer<'a> {
 
         let integer = self.collect(|c| c.is_numeric());
 
-        let integer = if let Some(m) = integer.parse() {
+        let integer = if let Ok(m) = integer.parse() {
             m
         } else {
             self.fatal(format!("invalid integer: {}", integer))
@@ -424,7 +424,7 @@ mod tests {
     #[test]
     fn test_mnemonic() {
         assert_eq!(tokenize("MOV"),
-                   vec![MNEMONIC(from_str("MOV").unwrap())]);
+                   vec![MNEMONIC("MOV".parse().unwrap())]);
     }
 
     #[test]
@@ -468,8 +468,8 @@ mod tests {
         assert_eq!(tokenize("; asd"),
                    vec![]);
         assert_eq!(tokenize("; asd\nMOV ;asd\nMOV"),
-                   vec![MNEMONIC(from_str("MOV").unwrap()),
-                        MNEMONIC(from_str("MOV").unwrap())]);
+                   vec![MNEMONIC("MOV".parse().unwrap()),
+                        MNEMONIC("MOV".parse().unwrap())]);
     }
 
     #[test]
@@ -477,8 +477,8 @@ mod tests {
         assert_eq!(tokenize("\n\n\n\n     \n\t\n"),
                    vec![]);
         assert_eq!(tokenize("      MOV        \n\n MOV"),
-                   vec![MNEMONIC(from_str("MOV").unwrap()),
-                        MNEMONIC(from_str("MOV").unwrap())]);
+                   vec![MNEMONIC("MOV".parse().unwrap()),
+                        MNEMONIC("MOV".parse().unwrap())]);
     }
 
     #[test]

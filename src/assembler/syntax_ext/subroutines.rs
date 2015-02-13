@@ -16,7 +16,7 @@ pub fn expand(ast: &mut AST) {
 }
 
 
-#[derive(Show, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 enum SubroutineState {
     SubroutineStart(Ident),
     InSubroutine,

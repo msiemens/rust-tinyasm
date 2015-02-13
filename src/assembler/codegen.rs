@@ -26,13 +26,13 @@ pub fn generate_binary(ast: Vec<StatementNode>) -> Vec<Vec<u8>> {
 
             // Find the opcode matching the given argument types
             let instr_class = INSTRUCTIONS.get(&instr).unwrap();
-            let op = instr_class.iter().find(|&: op| {
+            let op = instr_class.iter().find(|op| {
                 op.args == arg_types
-            }).unwrap_or_else(|&:| {
+            }).unwrap_or_else(|| {
                 // Build allowed arguments string
                 let allowed_arg_types = instr_class.iter()
                     .cloned()
-                    .map(|&: args| format!("{:?}", args))
+                    .map(|args| format!("{:?}", args))
                     .collect::<Vec<_>>()
                     .connect(" or ");
 
@@ -75,7 +75,7 @@ mod test {
             generate_binary(vec![
                 Statement::new(
                     Statement::Operation(
-                        Mnemonic(from_str("HALT").unwrap()),
+                        Mnemonic("HALT".parse().unwrap()),
                         vec![]
                     ),
                     dummy_source()

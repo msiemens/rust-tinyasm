@@ -1,4 +1,5 @@
-use std::old_io::File;
+use std::fs::File;
+use std::io::Read;
 
 use assembler::ast::{AST, Statement};
 use assembler::parser::Parser;
@@ -22,8 +23,12 @@ pub fn expand(ast: &mut AST) {
 
             last_file = Some(to_include.clone());
 
-            let contents = File::open(&to_include)
-                .read_to_string()
+            let mut contents = String::new();
+            File::open(&to_include)
+                .unwrap_or_else(|e| {
+                    fatal!("cannot read {}: {}", to_include.display(), e; ast[i]);
+                })
+                .read_to_string(&mut contents)
                 .unwrap_or_else(|e| {
                     fatal!("cannot read {}: {}", to_include.display(), e; ast[i]);
                 });

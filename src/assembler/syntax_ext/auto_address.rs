@@ -3,14 +3,14 @@ use assembler::ast::{AST, Statement, Argument, ArgumentNode, MacroArgument};
 pub fn expand(ast: &mut AST) {
     let mut auto_addr = 0u8;
 
-    let mut update_addr = |&mut: arg: &mut ArgumentNode, addr: Option<u8>| {
+    let mut update_addr = |arg: &mut ArgumentNode, addr: Option<u8>| {
         if addr == None {
             arg.value = Argument::Address(Some(auto_addr));
             auto_addr += 1;
         }
     };
 
-    let mut update_arg = |&mut: arg: &mut ArgumentNode| {
+    let mut update_arg = |arg: &mut ArgumentNode| {
         if let Argument::Address(addr) = arg.value {
             update_addr(arg, addr);
         }

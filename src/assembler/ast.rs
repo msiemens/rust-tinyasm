@@ -25,13 +25,13 @@ macro_rules! define(
             }
         }
 
-        impl fmt::Show for $wrapper {
+        impl fmt::Debug for $wrapper {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 write!(f, "{}", self.value)
             }
         }
 
-        impl fmt::String for $wrapper {
+        impl fmt::Display for $wrapper {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 write!(f, "{:?}", self)
             }
@@ -54,7 +54,7 @@ Statement -> StatementNode:
     Macro(Ident, Vec<MacroArgumentNode>)
 );
 
-impl fmt::Show for Statement {
+impl fmt::Debug for Statement {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Statement::Include(ref path) => write!(f, "#include {}", path),
@@ -80,7 +80,7 @@ impl fmt::Show for Statement {
     }
 }
 
-impl fmt::String for Statement {
+impl fmt::Display for Statement {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }
@@ -96,7 +96,7 @@ Argument -> ArgumentNode:
     Char(u8)
 );
 
-impl fmt::Show for Argument {
+impl fmt::Debug for Argument {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Argument::Literal(i) => write!(f, "{}", i),
@@ -113,7 +113,7 @@ impl fmt::Show for Argument {
     }
 }
 
-impl fmt::String for Argument {
+impl fmt::Display for Argument {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }
@@ -126,7 +126,7 @@ MacroArgument -> MacroArgumentNode:
     Ident(Ident)
 );
 
-impl fmt::Show for MacroArgument {
+impl fmt::Debug for MacroArgument {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             MacroArgument::Argument(ref arg) => write!(f, "{}", arg),
@@ -135,7 +135,7 @@ impl fmt::Show for MacroArgument {
     }
 }
 
-impl fmt::String for MacroArgument {
+impl fmt::Display for MacroArgument {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }
@@ -164,13 +164,13 @@ impl Ident {
     }
 }
 
-impl fmt::Show for Ident {
+impl fmt::Debug for Ident {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.as_str())
     }
 }
 
-impl fmt::String for Ident {
+impl fmt::Display for Ident {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }
@@ -180,14 +180,14 @@ impl fmt::String for Ident {
 #[derive(PartialEq, Eq, Clone)]
 pub struct Mnemonic(pub Instructions);
 
-impl fmt::Show for Mnemonic {
+impl fmt::Debug for Mnemonic {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let Mnemonic(ref mnem) = *self;
         write!(f, "{:?}", mnem)
     }
 }
 
-impl fmt::String for Mnemonic {
+impl fmt::Display for Mnemonic {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }
@@ -198,9 +198,10 @@ impl fmt::String for Mnemonic {
 pub struct IPath(pub SharedString);
 
 impl IPath {
-    /*pub fn from_str(s: &'static str) -> IPath {
+    #[cfg(test)]
+    pub fn from_str(s: &'static str) -> IPath {
         IPath(rcstr(s))
-    }*/
+    }
 
     /*pub fn from_string(s: String) -> IPath {
         IPath(rcstring(s))
@@ -212,14 +213,14 @@ impl IPath {
     }
 }
 
-impl fmt::Show for IPath {
+impl fmt::Debug for IPath {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let IPath(ref path) = *self;
         write!(f, "<{}>", path)
     }
 }
 
-impl fmt::String for IPath {
+impl fmt::Display for IPath {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }
