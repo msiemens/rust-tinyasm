@@ -1,5 +1,5 @@
 use assembler::instructions::{INSTRUCTIONS, ArgumentType};
-use assembler::ast::{Statement, StatementNode, Argument, Mnemonic};
+use assembler::parser::ast::{Statement, StatementNode, Argument, Mnemonic};
 use assembler::util::fatal;
 
 

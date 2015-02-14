@@ -1,23 +1,37 @@
-use std::old_io::File;
+use std::fs::File;
+use std::io::Read;
+use std::path::Path;
 
 use super::Args;
-use self::instructions::{INSTRUCTIONS, ModifyMemory, Jump, Halt, Continue};
+use self::instructions::{decode_opcode, Memset, Jump, Halt, Continue};
 
 
 mod instructions;
 
 
+const MEMORY_SIZE: usize = 256;
+
+
 pub fn main(args: Args) {
-    let source = match File::open(&Path::new(args.arg_input)).read_to_end() {
-        Ok(v)  => v,
-        Err(e) => { println!("Can't read file: {}", e); return; }
+    // Read binary file
+    let path = Path::new(&args.arg_input);
+    let mut file = match File::open(&path) {
+        Ok(f) => f,
+        Err(err) => { panic!("Can't open {}: {}", path.display(), err) }
     };
 
-    run(&*source);
+    let mut source = vec![];
+    match file.read_to_end(&mut source) {
+        Ok(v)  => v,
+        Err(err) => { panic!("Can't read {}: {}", path.display(), err) }
+    };
+
+    // Run virtual machine
+    run(&source);
 }
 
 fn run(source: &[u8]) {
-    let mut memory = [0u8; 256];
+    let mut memory = [0u8; MEMORY_SIZE];
     let mut pc = 0us;
 
     loop {
@@ -26,31 +40,38 @@ fn run(source: &[u8]) {
         debug!("memory: {:?}@{}", &memory[], memory.len());
         debug!("pc: {}", pc);
 
-        let opcode = source[pc];                        debug!("opcode: {:#04X}", opcode);
-        let ref instruction = INSTRUCTIONS.get(&opcode).unwrap();
-        let argc = instruction.argc();                  debug!("argc: {}", argc);
-        if pc + 1 + argc >= source.len() {
-            panic!("Reached end of input without HALT!")
-        }
-        let argv = match argc {
-            0 => &[][],  // Empty slice
-            _ => &source[pc + 1 .. pc + 1 + argc][]
-        };                                              debug!("argv: {:?}", argv);
-        pc += 1 + argc;  // Increment programm counter
+        // Read & decode opcode
+        let opcode = source[pc];
+        debug!("opcode: {:#04X}", opcode);
 
+        // Increment programm counter (skip opcode)
+        pc += 1;
 
+        let ref instruction = decode_opcode(opcode);
+
+        // Read arguments
+        let argc = instruction.argc; debug!("argc: {}", argc);
+        if pc + argc >= source.len() { panic!("Reached end of input without HALT!") }
+
+        let argv: &[u8] = if argc == 0 { &[] }
+                          else { &source[pc .. pc + argc] };
+        debug!("argv: {:?}", argv);
+
+        // Increment programm counter (skip args)
+        pc += argc;
+
+        // Execute instruction
         match instruction.execute(argv, &memory) {
-            Halt => break,
-            Jump(address) => {
+            Continue => {},
+            Jump { address } => {
                 debug!("Jumping to {}", address);
                 pc = address as usize;
             },
-            ModifyMemory(location, content) => {
-                debug!("Setting m[{}] = {}", location, content);
-                memory[location as usize] = content;
+            Memset { address, value } => {
+                debug!("Setting m[{}] = {}", address, value);
+                memory[address as usize] = value;
             },
-            Continue => {
-            }
+            Halt => break
         }
     }
 }

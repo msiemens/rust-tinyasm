@@ -1,25 +1,40 @@
+use std::old_io;
 use std::rc::Rc;
-
 use ansi_term::Colour::{Red, Yellow};
+use assembler::parser::SourceLocation;
 
-use assembler::lexer::SourceLocation;
 
-
+// FIXME: Use String intering with a table and something like `struct IString(u32)`
 pub type SharedString = Rc<String>;
 
 pub fn rcstr<'a>(s: &'a str) -> SharedString {
     Rc::new(String::from_str(s))
 }
 
-pub fn rcstring(s: String) -> SharedString {
-    Rc::new(s)
-}
+
+#[macro_export]
+macro_rules! impl_to_string(
+    ($cls:ident: $fmt:expr, $( $args:ident ),*) => (
+        impl fmt::Debug for $cls {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                write!(f, $fmt, $( self.$args ),*)
+            }
+        }
+
+        impl fmt::Display for $cls {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                write!(f, "{:?}", self)
+            }
+        }
+    )
+);
 
 
 #[macro_export]
 macro_rules! overflow_check(
     ($val:expr, $stmt:expr) => (
-        if $val > 255 { warn!("overflow: {} > 255", $val; $stmt) }
+        if $val > 255 { warn!("overflow: {} > 255", $val; $stmt); ($val % 256) as u8 }
+        else { $val as u8 }
     )
 );
 
@@ -37,6 +52,8 @@ macro_rules! fatal(
 
 pub fn fatal(msg: String, source: &SourceLocation) -> ! {
     println!("{} in {}: {}", Red.paint("Error"), source, msg);
+
+    old_io::stdio::set_stderr(Box::new(old_io::util::NullWriter));
     panic!();
 }
 

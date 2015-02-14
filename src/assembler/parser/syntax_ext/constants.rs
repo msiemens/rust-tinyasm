@@ -1,20 +1,34 @@
+//! A syntax extension for constants
+//!
+//! # Example:
+//!
+//! ```
+//! $const = [0]
+//! MOV $const 2
+//! ```
+//!
+//! Results in:
+//!
+//! ```
+//! MOV [0] 2
+//! ```
+
 use std::collections::HashMap;
-
-use assembler::ast::{AST, Statement, Argument, Ident};
 use assembler::util::{warn, fatal};
+use assembler::parser::ast::{Program, Statement, Argument, Ident};
 
-pub fn expand(ast: &mut AST) {
+
+pub fn expand(source: &mut Program) {
     let mut consts: HashMap<Ident, Argument> = HashMap::new();
 
-    // Pass 1: Collect constant definitions
-    ast.retain(|stmt| {
-        let (name, value) = if let Statement::Const(ref name, ref value) = stmt.value {
-            (name, value)
-        } else {
-            // Not a const assignment, keep it
-            return true
+    // Pass 1: Collect constant definitions & remove them from the source
+    source.retain(|stmt| {
+        let (name, value) = match stmt.value {
+            Statement::Const(ref name, ref value) => (name, value),
+            _ => return true  // Not a const assignment, keep it
         };
 
+        // Collect value
         match value.value {
             Argument::Literal(_) | Argument::Address(_) => {
                 if consts.insert(name.clone(), value.value.clone()).is_some() {
@@ -24,17 +38,16 @@ pub fn expand(ast: &mut AST) {
             _ => fatal!("invalid constant value: {:?}", value; value)
         }
 
-        false  // Remove this statement from the AST
+        false  // Remove the definition from the source
     });
 
     debug!("Constants: {:?}", consts);
 
-    // Pass 2: Replace constant usages
-    for stmt in ast.iter_mut() {
-        let args = if let Statement::Operation(_, ref mut args) = stmt.value {
-            args
-        } else {
-            continue
+    // Pass 2: Replace usages of constants
+    for stmt in source.iter_mut() {
+        let args = match stmt.value {
+            Statement::Operation(_, ref mut args) => args,
+            _ => continue
         };
 
         for arg in args.iter_mut() {

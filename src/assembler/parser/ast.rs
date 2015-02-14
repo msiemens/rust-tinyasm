@@ -1,19 +1,25 @@
 use std::fmt;
 
-use assembler::instructions::Instructions;
-use assembler::lexer::SourceLocation;
-use assembler::util::{SharedString, rcstr, rcstring};
+use assembler::instructions::Instruction;
+use assembler::parser::lexer::SourceLocation;
+use assembler::util::SharedString;
 
 
-pub type AST = Vec<StatementNode>;
+pub type Program = Vec<StatementNode>;
 
-// FIXME: Find better wrapper names
 macro_rules! define(
     ( $name:ident -> $wrapper:ident : $( $variants:ident ( $( $arg:ty ),* ) ),* ) => {
         #[derive(PartialEq, Eq, Clone)]
         pub struct $wrapper {
             pub value: $name,
             pub location: SourceLocation
+        }
+
+        impl_to_string!($wrapper: "{}", value);
+
+        #[derive(PartialEq, Eq, Clone)]
+        pub enum $name {
+            $( $variants ( $( $arg ),* ) ),*
         }
 
         impl $name {
@@ -24,29 +30,11 @@ macro_rules! define(
                 }
             }
         }
-
-        impl fmt::Debug for $wrapper {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                write!(f, "{}", self.value)
-            }
-        }
-
-        impl fmt::Display for $wrapper {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                write!(f, "{:?}", self)
-            }
-        }
-
-        #[derive(PartialEq, Eq, Clone)]
-        pub enum $name {
-            $( $variants ( $( $arg ),* ) ),*
-        }
     };
 );
 
 
-define!(
-Statement -> StatementNode:
+define!(Statement -> StatementNode:
     Include(IPath),
     Label(Ident),
     Const(Ident, ArgumentNode),
@@ -87,8 +75,7 @@ impl fmt::Display for Statement {
 }
 
 
-define!(
-Argument -> ArgumentNode:
+define!(Argument -> ArgumentNode:
     Literal(u8),
     Address(Option<u8>),
     Const(Ident),
@@ -120,8 +107,7 @@ impl fmt::Display for Argument {
 }
 
 
-define!(
-MacroArgument -> MacroArgumentNode:
+define!(MacroArgument -> MacroArgumentNode:
     Argument(ArgumentNode),
     Ident(Ident)
 );
@@ -146,14 +132,6 @@ impl fmt::Display for MacroArgument {
 pub struct Ident(pub SharedString);
 
 impl Ident {
-    pub fn from_str(s: &'static str) -> Ident {
-        Ident(rcstr(s))
-    }
-
-    pub fn from_string(s: String) -> Ident {
-        Ident(rcstring(s))
-    }
-
     pub fn as_str(&self) -> SharedString {
         let Ident(ref s) = *self;
         s.clone()
@@ -178,7 +156,7 @@ impl fmt::Display for Ident {
 
 
 #[derive(PartialEq, Eq, Clone)]
-pub struct Mnemonic(pub Instructions);
+pub struct Mnemonic(pub Instruction);
 
 impl fmt::Debug for Mnemonic {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

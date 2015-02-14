@@ -1,30 +1,27 @@
 #![feature(plugin, slicing_syntax)]
 
-#![feature(rustc_private)]
-#![feature(test)]
+// Use of unstable libraries
 #![feature(collections)]
-#![feature(io)]
-#![feature(fs)]
-#![feature(hash)]
 #![feature(core)]
+#![feature(fs)]
+#![feature(io)]
+#![feature(hash)]
 #![feature(path)]
+#![feature(os)]
+#![feature(std_misc)]
 
 #![plugin(docopt_macros)]
 
 extern crate ansi_term;
-extern crate rand;
-extern crate term;
-extern crate test;
-#[macro_use] extern crate log;
-
-extern crate "rustc-serialize" as rustc_serialize;
 extern crate docopt;
-#[macro_use] extern crate seq;
+extern crate env_logger;
+extern crate rand;
+extern crate "rustc-serialize" as rustc_serialize;
 #[macro_use] extern crate lazy_static;
-
+#[macro_use] extern crate log;
+#[macro_use] extern crate seq;
 
 use docopt::Docopt;
-
 
 mod assembler;
 mod vm;
@@ -43,6 +40,8 @@ Options:
 
 #[cfg(not(test))]
 fn main() {
+    env_logger::init().unwrap();
+
     let args: Args = Args::docopt().decode().unwrap_or_else(|e| e.exit());
 
     if args.cmd_asm {

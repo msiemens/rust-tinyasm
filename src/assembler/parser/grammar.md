@@ -1,17 +1,3 @@
-# Code to cover
-
-    ; This is a comment
-    #include <file_name.asm>
-    label:
-    JMP :label
-    $auto_increment = [_]
-    $mem_addr = [0]
-    $some_const = 5
-    MOV $mem_addr $some_const
-
-    APRINT '!'  ; Prints: !
-    APRINT '\n' ; Prints a newline
-
 # EBNF-like grammar
 
     # AST

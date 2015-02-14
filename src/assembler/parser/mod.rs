@@ -1,13 +1,19 @@
+pub mod ast;
+mod lexer;
+mod syntax_ext;
+
 use std::collections::DList;
-
-use assembler::ast::{
-    AST, Statement, Argument, MacroArgument, Mnemonic, Ident, IPath,
-    StatementNode, ArgumentNode, MacroArgumentNode
-};
-use assembler::lexer::{SourceLocation, Lexer, FileLexer, Token};
 use assembler::util::{fatal, rcstr};
+use self::ast::*;
+use self::lexer::{Lexer, FileLexer, Token};
+
+pub use self::lexer::{SourceLocation, dummy_source};
+pub use self::syntax_ext::expand_syntax_extensions;
 
 
+/// The Parser
+///
+/// A simple recursive descent parser the grammar as described in `grammar.md`.
 pub struct Parser<'a> {
     location: SourceLocation,
     token: Token,
@@ -20,9 +26,7 @@ impl<'a> Parser<'a> {
         Parser::with_lexer(Box::new(FileLexer::new(source, file)))
     }
 
-    pub fn with_lexer(lx: Box<Lexer + 'a>) -> Parser<'a> {
-        let mut lx = lx;
-
+    pub fn with_lexer(mut lx: Box<Lexer + 'a>) -> Parser<'a> {
         Parser {
             token: lx.next_token(),
             location: lx.get_source(),
@@ -31,6 +35,22 @@ impl<'a> Parser<'a> {
         }
     }
 
+    pub fn parse(&mut self) -> Program {
+        let mut source = vec![];
+
+        debug!("Starting parsing");
+
+        while self.token != Token::EOF {
+            source.push(self.parse_statement());
+        }
+
+        debug!("Parsing finished");
+
+        source
+    }
+
+
+    // --- Error handling -------------------------------------------------------
 
     fn fatal(&self, msg: String) -> ! {
         fatal(msg, &self.location);
@@ -43,16 +63,19 @@ impl<'a> Parser<'a> {
         }
     }
 
+
+    // --- Token processing -----------------------------------------------------
+
+    fn update_location(&mut self) -> SourceLocation {
+        self.location = self.lexer.get_source();
+        self.location.clone()
+    }
+
     fn bump(&mut self) {
         self.token = match self.buffer.pop_front() {
             Some(tok) => tok,
             None => self.lexer.next_token()
         };
-    }
-
-    fn update_location(&mut self) -> SourceLocation {
-        self.location = self.lexer.get_source();
-        self.location.clone()
     }
 
     fn eat(&mut self, tok: &Token) -> bool {
@@ -70,7 +93,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn look_ahead<F, R>(&mut self, distance: usize, f: F) -> R where F: Fn(&Token) -> R {
+    fn look_ahead<F, R>(&mut self, distance: usize, f: F) -> R where F: Fn(&Token) -> R {
         if self.buffer.len() < distance {
             for _ in 0 .. distance - self.buffer.len() {
                 self.buffer.push_back(self.lexer.next_token());
@@ -80,22 +103,7 @@ impl<'a> Parser<'a> {
         f(self.buffer.iter().nth(distance - 1).unwrap())
     }
 
-
-    pub fn parse(&mut self) -> AST {
-        let mut ast = vec![];
-
-        debug!("Starting parsing");
-
-        while self.token != Token::EOF {
-            ast.push(self.parse_statement());
-        }
-
-        debug!("Parsing finished");
-
-        ast
-    }
-
-    // -------------------------------------------------------------------
+    // --- Actual parsing -------------------------------------------------------
 
     fn token_is_argument(&mut self) -> bool {
         match self.token {
@@ -106,7 +114,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    // -------------------------------------------------------------------
+    // --- Parsing: Single tokens -----------------------------------------------
 
     fn parse_ident(&mut self) -> Ident {
         let ident = match self.token {
@@ -128,16 +136,18 @@ impl<'a> Parser<'a> {
         path
     }
 
-    // -------------------------------------------------------------------
+    // --- Parsing: Compound expressions ----------------------------------------
 
     fn parse_address(&mut self) -> Option<u8> {
         self.expect(&Token::LBRACKET);
+
         let value = match self.token {
             Token::INTEGER(i) => Some(i),
             Token::UNDERSCORE => None,
             _ => self.unexpected_token(&self.token, Some("an address"))
         };
         self.bump();
+
         self.expect(&Token::RBRACKET);
 
         value
@@ -145,7 +155,6 @@ impl<'a> Parser<'a> {
 
     fn parse_label(&mut self) -> Ident {
         self.expect(&Token::COLON);
-
         self.parse_ident()
     }
 
@@ -181,7 +190,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    // -------------------------------------------------------------------
+    // ---- Parsing: Expressions ------------------------------------------------
 
     fn parse_include(&mut self) -> StatementNode {
         let location = self.update_location();

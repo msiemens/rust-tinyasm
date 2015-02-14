@@ -2,7 +2,7 @@ use std::ascii::AsciiExt;
 use std::collections::HashMap;
 use std::str::FromStr;
 
-use self::Instructions::*;
+use self::Instruction::*;
 use self::ArgumentType::*;
 
 
@@ -28,15 +28,15 @@ macro_rules! make_instructions(
     ( $( $op:ident ),* ) => {
 
         #[derive(Clone, PartialEq, Eq, Debug, Hash)]
-        pub enum Instructions {
+        pub enum Instruction {
             $( $op ),*
         }
 
-        impl FromStr for Instructions {
+        impl FromStr for Instruction {
             type Err = String;
 
-            fn from_str(s: &str) -> Result<Instructions, String> {
-                match &*(s.to_ascii_uppercase()) {
+            fn from_str(s: &str) -> Result<Instruction, String> {
+                match &*s.to_ascii_uppercase() {
                     $(
                         stringify!($op) => Ok($op),
                     )*
@@ -64,7 +64,7 @@ struct Operation {
 }
 
 pub type InstructionClass = Vec<Operation>;
-pub type InstructionSet = HashMap<Instructions, InstructionClass>;
+pub type InstructionSet = HashMap<Instruction, InstructionClass>;
 
 
 macro_rules! instructions (
