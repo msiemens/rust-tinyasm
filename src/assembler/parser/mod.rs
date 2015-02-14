@@ -281,18 +281,23 @@ impl<'a> Parser<'a> {
 mod tests {
     use std::rc::Rc;
 
-    use assembler::ast::{
-        AST, Statement, Argument, MacroArgument, Mnemonic, Ident, IPath,
-        StatementNode, ArgumentNode, MacroArgumentNode
-    };
-    use assembler::lexer::{dummy_source, Token, Lexer};
-    use assembler::lexer::Token::*;
+    use assembler::parser::ast::*;
+    use assembler::parser::lexer::{Token, Lexer};
+    use assembler::parser::lexer::Token::*;
     use assembler::util::rcstr;
 
     use super::*;
 
     fn parse<'a, F, T>(toks: Vec<Token>, f: F) -> T where F: Fn(&mut Parser<'a>) -> T {
         f(&mut Parser::with_lexer(Box::new(toks) as Box<Lexer>))
+    }
+
+    fn ident_from_str(s: &str) -> Ident {
+        Ident(Rc::new(s.to_string()))
+    }
+
+    fn path_from_str(s: &str) -> IPath {
+        IPath(Rc::new(s.to_string()))
     }
 
     #[test]
@@ -306,7 +311,7 @@ mod tests {
             vec![
                 Statement::new(
                     Statement::Include(
-                        IPath::from_str("as/d")
+                        path_from_str("as/d")
                     ),
                     dummy_source()
                 ),
@@ -328,7 +333,7 @@ mod tests {
                   |p| p.parse_statement()),
             Statement::new(
                 Statement::Include(
-                    IPath::from_str("as/d")
+                    path_from_str("as/d")
                 ),
                 dummy_source()
             )
@@ -342,7 +347,7 @@ mod tests {
                   |p| p.parse_statement()),
             Statement::new(
                 Statement::Label(
-                    Ident::from_str("lbl")
+                    ident_from_str("lbl")
                 ),
                 dummy_source()
             )
@@ -356,7 +361,7 @@ mod tests {
                   |p| p.parse_statement()),
             Statement::new(
                 Statement::Const(
-                    Ident::from_str("c"),
+                    ident_from_str("c"),
                     Argument::new(
                         Argument::Literal(0),
                         dummy_source()
@@ -395,7 +400,7 @@ mod tests {
                   |p| p.parse_statement()),
             Statement::new(
                 Statement::Macro(
-                    Ident::from_str("macro"),
+                    ident_from_str("macro"),
                     vec![
                         MacroArgument::new(
                             MacroArgument::Argument(
@@ -465,7 +470,7 @@ mod tests {
                   |p| p.parse_argument()),
             Argument::new(
                 Argument::Const(
-                    Ident::from_str("asd")
+                    ident_from_str("asd")
                 ),
                 dummy_source()
             )
@@ -479,7 +484,7 @@ mod tests {
                   |p| p.parse_argument()),
             Argument::new(
                 Argument::Label(
-                    Ident::from_str("asd")
+                    ident_from_str("asd")
                 ),
                 dummy_source()
             )
@@ -522,7 +527,7 @@ mod tests {
                   |p| p.parse_macro_argument()),
             MacroArgument::new(
                 MacroArgument::Ident(
-                    Ident::from_str("asd")
+                    ident_from_str("asd")
                 ),
                 dummy_source()
             )
@@ -545,7 +550,7 @@ mod tests {
                 ),
                 Statement::new(
                     Statement::Const(
-                        Ident::from_str("c"),
+                        ident_from_str("c"),
                         Argument::new(
                             Argument::Literal(0),
                             dummy_source()

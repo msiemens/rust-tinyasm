@@ -1,3 +1,8 @@
+//! The Tiny Abstract Syntax Tree.
+//! Modeled following the grammar (`grammar.md`). Every compound item has an
+//! `Item` enum with all options and an `ItemNode` which contains the item
+//! and the location in the source file.
+
 use std::fmt;
 
 use assembler::instructions::Instruction;
@@ -6,6 +11,9 @@ use assembler::util::SharedString;
 
 
 pub type Program = Vec<StatementNode>;
+
+
+// --- Helper for AST definitions -----------------------------------------------
 
 macro_rules! define(
     ( $name:ident -> $wrapper:ident : $( $variants:ident ( $( $arg:ty ),* ) ),* ) => {
@@ -33,12 +41,15 @@ macro_rules! define(
     };
 );
 
+// --- AST: Compound items ------------------------------------------------------
+
+// --- AST: Compound items: Statements ------------------------------------------
 
 define!(Statement -> StatementNode:
-    Include(IPath),
-    Label(Ident),
-    Const(Ident, ArgumentNode),
-    Operation(Mnemonic, Vec<ArgumentNode>),
+    Include(IPath),                         // Ex: #import <...>
+    Label(Ident),                           // Ex: label:
+    Const(Ident, ArgumentNode),             // Ex: $const = 2
+    Operation(Mnemonic, Vec<ArgumentNode>), // Ex: @macro(args, ...)
     Macro(Ident, Vec<MacroArgumentNode>)
 );
 
@@ -75,12 +86,14 @@ impl fmt::Display for Statement {
 }
 
 
+// --- AST: Compound items: Arguments -------------------------------------------
+
 define!(Argument -> ArgumentNode:
-    Literal(u8),
-    Address(Option<u8>),
-    Const(Ident),
-    Label(Ident),
-    Char(u8)
+    Literal(u8),            // A simple literal
+    Address(Option<u8>),    // An address (`[0]`) or an auto-filled address (`[_]`)
+    Const(Ident),           // A constant (`$const`)
+    Label(Ident),           // A label (`:label`)
+    Char(u8)                // A character (`'a'`)
 );
 
 impl fmt::Debug for Argument {
@@ -107,6 +120,8 @@ impl fmt::Display for Argument {
 }
 
 
+// --- AST: Compound items: Macro Arguments -------------------------------------
+
 define!(MacroArgument -> MacroArgumentNode:
     Argument(ArgumentNode),
     Ident(Ident)
@@ -127,6 +142,10 @@ impl fmt::Display for MacroArgument {
     }
 }
 
+
+// --- AST: Single items --------------------------------------------------------
+
+// --- AST: Single items: Identifier --------------------------------------------
 
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub struct Ident(pub SharedString);
@@ -155,6 +174,8 @@ impl fmt::Display for Ident {
 }
 
 
+// --- AST: Single items: Mnemonic ----------------------------------------------
+
 #[derive(PartialEq, Eq, Clone)]
 pub struct Mnemonic(pub Instruction);
 
@@ -172,19 +193,12 @@ impl fmt::Display for Mnemonic {
 }
 
 
+// --- AST: Single items: Import Path -------------------------------------------
+
 #[derive(PartialEq, Eq, Clone)]
 pub struct IPath(pub SharedString);
 
 impl IPath {
-    #[cfg(test)]
-    pub fn from_str(s: &'static str) -> IPath {
-        IPath(rcstr(s))
-    }
-
-    /*pub fn from_string(s: String) -> IPath {
-        IPath(rcstring(s))
-    }*/
-
     pub fn as_str(&self) -> SharedString {
         let IPath(ref p) = *self;
         p.clone()

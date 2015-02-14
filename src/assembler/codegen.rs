@@ -64,8 +64,8 @@ pub fn generate_binary(ast: Vec<StatementNode>) -> Vec<Vec<u8>> {
 
 #[cfg(test)]
 mod test {
-    use assembler::ast::{Statement, Mnemonic};
-    use assembler::lexer::dummy_source;
+    use assembler::parser::ast::{Statement, Mnemonic};
+    use assembler::parser::dummy_source;
 
     use super::generate_binary;
 
