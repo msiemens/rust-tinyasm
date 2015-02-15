@@ -18,11 +18,11 @@
 //! @end()
 //! ```
 
+use std::borrow::ToOwned;
 use std::collections::HashMap;
-use assembler::util::fatal;
 use assembler::parser::ast::{Program, Statement, StatementNode, Argument, MacroArgument, MacroArgumentNode,
                              Ident};
-use assembler::parser::{Parser};
+use assembler::parser::Parser;
 
 use self::SubroutineState::*;
 
@@ -143,7 +143,7 @@ impl<'a> SubroutineExpander<'a> {
         let mut template = r###"
             $return = [_]
             $jump_back = [_]
-        "###.to_string();
+        "###.to_owned();
 
         for i in 0 .. *self.routines.values().max().unwrap() {
             template.push_str(&format!("$arg{} = [_]\n", i));

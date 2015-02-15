@@ -1,8 +1,12 @@
+//! The Lexer
+//!
+//! Nothing outstanding, just a normal lexer.
+
 use std::fmt;
 use std::rc::Rc;
 
-use assembler::instructions::Instruction;
 use assembler::util::{fatal, rcstr, SharedString};
+use machine::Mnemonic;
 
 
 // --- Source Location ----------------------------------------------------------
@@ -41,7 +45,7 @@ pub enum Token {
     LBRACKET,
     RBRACKET,
 
-    MNEMONIC(Instruction),
+    MNEMONIC(Mnemonic),
     IDENT(SharedString),
     INTEGER(u8),
     CHAR(u8),

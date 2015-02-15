@@ -30,7 +30,6 @@ use std::ffi::AsOsStr;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
-use assembler::util::fatal;
 use assembler::parser::ast::{Program, Statement};
 use assembler::parser::Parser;
 

@@ -1,10 +1,11 @@
-use assembler::instructions::{INSTRUCTIONS, ArgumentType};
+use machine::InstructionManager;
+use machine::Argument as ArgumentType;
 use assembler::parser::ast::{Statement, StatementNode, Argument, Mnemonic};
-use assembler::util::fatal;
 
 
 pub fn generate_binary(ast: Vec<StatementNode>) -> Vec<Vec<u8>> {
     let mut binary = vec![];
+    let im = InstructionManager::new();
 
     for stmt in ast.iter() {
         if let Statement::Operation(ref mnem, ref args) = stmt.value {
@@ -25,19 +26,20 @@ pub fn generate_binary(ast: Vec<StatementNode>) -> Vec<Vec<u8>> {
             }).collect();
 
             // Find the opcode matching the given argument types
-            let instr_class = INSTRUCTIONS.get(&instr).unwrap();
+            let instr_class = im.lookup_operations(instr.clone());
             let op = instr_class.iter().find(|op| {
-                op.args == arg_types
+                op.arg_types == arg_types
             }).unwrap_or_else(|| {
                 // Build allowed arguments string
-                let allowed_arg_types = instr_class.iter()
+                /*let allowed_arg_types = instr_class.iter()
                     .cloned()
                     .map(|args| format!("{:?}", args))
                     .collect::<Vec<_>>()
                     .connect(" or ");
 
                 fatal!("invalid arguments for {:?}: found {:?}, allowed: {:?}",
-                       instr, arg_types, allowed_arg_types; stmt)
+                       instr, arg_types, allowed_arg_types; stmt)*/
+                panic!();
             });
 
             // Finally, write the opcode

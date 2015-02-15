@@ -1,6 +1,5 @@
 #[macro_use] mod util;
 mod codegen;
-mod instructions;
 mod parser;
 
 

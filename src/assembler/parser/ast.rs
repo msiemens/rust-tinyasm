@@ -5,9 +5,9 @@
 
 use std::fmt;
 
-use assembler::instructions::Instruction;
 use assembler::parser::lexer::SourceLocation;
 use assembler::util::SharedString;
+use machine::Mnemonic as Instruction;  // FIXME
 
 
 pub type Program = Vec<StatementNode>;

@@ -42,11 +42,19 @@ macro_rules! overflow_check(
 #[macro_export]
 macro_rules! fatal(
     ($msg:expr, $($args:expr),* ; $stmt:expr) => {
-        fatal(format!($msg, $($args),*), &$stmt.location)
+        {
+            use assembler::util::fatal;
+            fatal(format!($msg, $($args),*), &$stmt.location)
+        }
     };
 
     ($msg:expr ; $stmt:expr) => {
-        fatal($msg.to_string(), &$stmt.location)
+        {
+            use std::borrow::ToOwned;
+            use assembler::util::fatal;
+
+            fatal($msg.to_owned(), &$stmt.location)
+        }
     };
 );
 
@@ -61,7 +69,11 @@ pub fn fatal(msg: String, source: &SourceLocation) -> ! {
 #[macro_export]
 macro_rules! warn(
     ($msg:expr, $($args:expr),* ; $stmt:expr ) => {
-        warn(format!($msg, $($args),*), &$stmt.location)
+        {
+            use assembler::util::warn;
+
+            warn(format!($msg, $($args),*), &$stmt.location)
+        }
     }
 );
 

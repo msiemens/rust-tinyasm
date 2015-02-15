@@ -15,7 +15,6 @@
 
 use std::collections::HashMap;
 use assembler::parser::ast::{Program, Statement, Argument, Ident};
-use assembler::util::{warn, fatal};
 
 
 pub fn expand(source: &mut Program) {

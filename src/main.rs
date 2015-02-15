@@ -11,6 +11,7 @@
 #![feature(std_misc)]
 
 #![plugin(docopt_macros)]
+//#![plugin(rest_easy)]
 
 extern crate ansi_term;
 extern crate docopt;
@@ -24,8 +25,8 @@ extern crate "rustc-serialize" as rustc_serialize;
 use docopt::Docopt;
 
 mod assembler;
+mod machine;
 mod vm;
-
 
 docopt!(Args derive Debug, "
 Usage: tiny asm [-v] <input>

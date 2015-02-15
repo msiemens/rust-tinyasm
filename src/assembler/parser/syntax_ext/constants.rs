@@ -14,7 +14,6 @@
 //! ```
 
 use std::collections::HashMap;
-use assembler::util::{warn, fatal};
 use assembler::parser::ast::{Program, Statement, Argument, Ident};
 
 

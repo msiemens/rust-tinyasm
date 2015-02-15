@@ -2,11 +2,8 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
-use super::Args;
-use self::instructions::{decode_opcode, Memset, Jump, Halt, Continue};
-
-
-mod instructions;
+use machine::{InstructionManager, Memset, Jump, Halt, Continue};
+use Args;
 
 
 const MEMORY_SIZE: usize = 256;
@@ -33,6 +30,7 @@ pub fn main(args: Args) {
 fn run(source: &[u8]) {
     let mut memory = [0u8; MEMORY_SIZE];
     let mut pc = 0us;
+    let im = InstructionManager::new();
 
     loop {
         debug!("");
@@ -47,7 +45,7 @@ fn run(source: &[u8]) {
         // Increment programm counter (skip opcode)
         pc += 1;
 
-        let ref instruction = decode_opcode(opcode);
+        let ref instruction = im.decode_opcode(opcode);
 
         // Read arguments
         let argc = instruction.argc; debug!("argc: {}", argc);

@@ -1,3 +1,7 @@
+//! The Parser
+//!
+//! A simple recursive descent parser the grammar as described in `grammar.md`.
+
 pub mod ast;
 mod lexer;
 mod syntax_ext;
@@ -11,9 +15,6 @@ pub use self::lexer::{SourceLocation, dummy_source};
 pub use self::syntax_ext::expand_syntax_extensions;
 
 
-/// The Parser
-///
-/// A simple recursive descent parser the grammar as described in `grammar.md`.
 pub struct Parser<'a> {
     location: SourceLocation,
     token: Token,
@@ -293,11 +294,11 @@ mod tests {
     }
 
     fn ident_from_str(s: &str) -> Ident {
-        Ident(Rc::new(s.to_string()))
+        Ident(Rc::new(s.to_owned()))
     }
 
     fn path_from_str(s: &str) -> IPath {
-        IPath(Rc::new(s.to_string()))
+        IPath(Rc::new(s.to_owned()))
     }
 
     #[test]
