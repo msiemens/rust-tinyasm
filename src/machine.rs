@@ -247,7 +247,7 @@ macro_rules! instruction {
 }
 
 macro_rules! instructions {
-    ( $($mnem:ident : $( $opcode:expr => $instr:ident [ $($t:ident),* ] ),* ; )* ) => {
+    ( $($mnem:ident : $( $opcode:expr => $instr:ident ( $($t:ident),* ) ),* ; )* ) => {
 
         // Remember: HALT is not part of the macro's arguments as its opcode
         // doesn't follow the scheme of the other instructions.
@@ -328,74 +328,74 @@ macro_rules! instructions {
 
 instructions! {
     AND:
-    0x00 => IAnd[Address, Value  ],
-    0x01 => IAnd[Address, Literal];
+    0x00 => IAnd(Address, Value  ),
+    0x01 => IAnd(Address, Literal);
 
     OR:
-    0x02 => IOr[Address, Value  ],
-    0x03 => IOr[Address, Literal];
+    0x02 => IOr(Address, Value  ),
+    0x03 => IOr(Address, Literal);
 
     XOR:
-    0x04 => IXor[Address, Value  ],
-    0x05 => IXor[Address, Literal];
+    0x04 => IXor(Address, Value  ),
+    0x05 => IXor(Address, Literal);
 
     NOT:
-    0x06 => INot[Address];
+    0x06 => INot(Address);
 
 
     MOV:
-    0x07 => IMov[Address, Value  ],
-    0x08 => IMov[Address, Literal];
+    0x07 => IMov(Address, Value  ),
+    0x08 => IMov(Address, Literal);
 
 
     RANDOM:
-    0x09 => IRandom[Address];
+    0x09 => IRandom(Address);
 
     ADD:
-    0x0A => IAdd[Address, Value  ],
-    0x0B => IAdd[Address, Literal];
+    0x0A => IAdd(Address, Value  ),
+    0x0B => IAdd(Address, Literal);
 
     SUB:
-    0x0C => ISub[Address, Value]  ,
-    0x0D => ISub[Address, Literal];
+    0x0C => ISub(Address, Value] ),
+    0x0D => ISub(Address, Literal);
 
 
     JMP:
-    0x0E => IJmp[Value  ],
-    0x0F => IJmp[Literal];
+    0x0E => IJmp(Value  ),
+    0x0F => IJmp(Literal);
 
     JZ:
-    0x10 => IJz[Value,   Value  ],
-    0x11 => IJz[Value,   Literal],
-    0x12 => IJz[Literal, Value  ],
-    0x13 => IJz[Literal, Literal];
+    0x10 => IJz(Value,   Value  ),
+    0x11 => IJz(Value,   Literal),
+    0x12 => IJz(Literal, Value  ),
+    0x13 => IJz(Literal, Literal);
 
     JEQ:
-    0x14 => IJeq[Value,   Value, Value  ],
-    0x15 => IJeq[Literal, Value, Value  ],
-    0x16 => IJeq[Value,   Value, Literal],
-    0x17 => IJeq[Literal, Value, Literal];
+    0x14 => IJeq(Value,   Value, Value  ),
+    0x15 => IJeq(Literal, Value, Value  ),
+    0x16 => IJeq(Value,   Value, Literal),
+    0x17 => IJeq(Literal, Value, Literal);
 
     JLS:
-    0x18 => IJls[Value,   Value, Value  ],
-    0x19 => IJls[Literal, Value, Value  ],
-    0x1A => IJls[Value,   Value, Literal],
-    0x1B => IJls[Literal, Value, Literal];
+    0x18 => IJls(Value,   Value, Value  ),
+    0x19 => IJls(Literal, Value, Value  ),
+    0x1A => IJls(Value,   Value, Literal),
+    0x1B => IJls(Literal, Value, Literal);
 
     JGT:
-    0x1C => IJgt[Value,   Value, Value  ],
-    0x1D => IJgt[Literal, Value, Value  ],
-    0x1E => IJgt[Value,   Value, Literal],
-    0x1F => IJgt[Literal, Value, Literal];
+    0x1C => IJgt(Value,   Value, Value  ),
+    0x1D => IJgt(Literal, Value, Value  ),
+    0x1E => IJgt(Value,   Value, Literal),
+    0x1F => IJgt(Literal, Value, Literal);
 
 
     APRINT:
-    0x20 => IAPrint[Value  ],
-    0x21 => IAPrint[Literal];
+    0x20 => IAPrint(Value  ),
+    0x21 => IAPrint(Literal);
 
     DPRINT:
-    0x22 => IDPrint[Value  ],
-    0x23 => IDPrint[Literal];
+    0x22 => IDPrint(Value  ),
+    0x23 => IDPrint(Literal);
 }
 
 // Halt the program
