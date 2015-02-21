@@ -19,7 +19,7 @@ use assembler::parser::ast::{Program, Statement, Argument, Ident};
 
 pub fn expand(source: &mut Program) {
     let mut labels: HashMap<Ident, usize> = HashMap::new();
-    let mut offset = 0usize;
+    let mut offset = 0;
 
     // Pass 1: Collect label definitions
     source.retain(|stmt| {

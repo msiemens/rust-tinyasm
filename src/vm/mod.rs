@@ -29,7 +29,7 @@ pub fn main(args: Args) {
 
 fn run(source: &[u8]) {
     let mut memory = [0u8; MEMORY_SIZE];
-    let mut pc = 0usize;
+    let mut pc = 0;
     let im = InstructionManager::new();
 
     loop {

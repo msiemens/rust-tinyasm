@@ -159,38 +159,42 @@ make_instruction!(IHalt -> Halt);
 
 // Jump to a
 make_instruction!(IJmp(args[1], memory) {
-    Jump{ address: args[0] }
+    Jump { address: args[0] }
 });
 
 // Jump to a if b == 0
 make_instruction!(IJz(args[2], memory) {
-    match args[0] {
-        0 => Jump{ address: args[0] },
-        _ => Continue
+    if args[0] == 0 {
+        Jump { address: args[0] }
+    } else {
+        Continue
     }
 });
 
 // Jump to a if b == c
 make_instruction!(IJeq(args[3], memory) {
-    match args[1] == args[2] {
-        true => Jump{ address: args[0] },
-        false => Continue
+    if args[1] == args[2] {
+        Jump { address: args[0] }
+    } else {
+        Continue
     }
 });
 
 // Jump to a if b < c
 make_instruction!(IJls(args[3], memory) {
-    match args[1] < args[2] {
-        true => Jump{ address: args[0] },
-        false => Continue
+    if args[1] < args[2] {
+        Jump { address: args[0] }
+    } else {
+        Continue
     }
 });
 
 // Jump to a if b > c
 make_instruction!(IJgt(args[3], memory) {
-    match args[1] > args[2] {
-        true => Jump{ address: args[0] },
-        false => Continue
+    if args[1] > args[2] {
+        Jump { address: args[0] }
+    } else {
+        Continue
     }
 });
 
