@@ -6,7 +6,7 @@ pub mod ast;
 mod lexer;
 mod syntax_ext;
 
-use std::collections::DList;
+use std::collections::LinkedList;
 use assembler::util::{fatal, rcstr};
 use self::ast::*;
 use self::lexer::{Lexer, FileLexer, Token};
@@ -18,7 +18,7 @@ pub use self::syntax_ext::expand_syntax_extensions;
 pub struct Parser<'a> {
     location: SourceLocation,
     token: Token,
-    buffer: DList<Token>,
+    buffer: LinkedList<Token>,
     lexer: Box<Lexer + 'a>
 }
 
@@ -31,7 +31,7 @@ impl<'a> Parser<'a> {
         Parser {
             token: lx.next_token(),
             location: lx.get_source(),
-            buffer: DList::new(),
+            buffer: LinkedList::new(),
             lexer: lx
         }
     }

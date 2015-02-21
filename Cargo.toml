@@ -22,9 +22,3 @@ lazy_static = "*"
 log = "*"
 rand = "*"
 rustc-serialize = "*"
-
-[dependencies.seq]
-git = "https://github.com/japaric/seq.rs.git"
-
-#[dependencies.rest_easy]
-#git = "https://github.com/cmr/rest_easy"

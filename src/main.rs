@@ -1,17 +1,16 @@
-#![feature(plugin, slicing_syntax)]
+#![feature(plugin)]
 
 // Use of unstable libraries
 #![feature(collections)]
 #![feature(core)]
 #![feature(fs)]
 #![feature(io)]
-#![feature(hash)]
 #![feature(path)]
+#![feature(old_io)]
 #![feature(os)]
 #![feature(std_misc)]
 
 #![plugin(docopt_macros)]
-//#![plugin(rest_easy)]
 
 extern crate ansi_term;
 extern crate docopt;
@@ -20,7 +19,6 @@ extern crate rand;
 extern crate "rustc-serialize" as rustc_serialize;
 #[macro_use] extern crate lazy_static;
 #[macro_use] extern crate log;
-#[macro_use] extern crate seq;
 
 use docopt::Docopt;
 

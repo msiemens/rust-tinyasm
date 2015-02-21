@@ -29,13 +29,13 @@ pub fn main(args: Args) {
 
 fn run(source: &[u8]) {
     let mut memory = [0u8; MEMORY_SIZE];
-    let mut pc = 0us;
+    let mut pc = 0usize;
     let im = InstructionManager::new();
 
     loop {
         debug!("");
         debug!("source: {:?}@{}", source, source.len());
-        debug!("memory: {:?}@{}", &memory[], memory.len());
+        debug!("memory: {:?}@{}", &memory[..], memory.len());
         debug!("pc: {}", pc);
 
         // Read & decode opcode

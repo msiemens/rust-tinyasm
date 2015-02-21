@@ -356,7 +356,7 @@ instructions! {
     0x0B => IAdd(Address, Literal);
 
     SUB:
-    0x0C => ISub(Address, Value] ),
+    0x0C => ISub(Address, Value  ),
     0x0D => ISub(Address, Literal);
 
 
