@@ -39,13 +39,11 @@ fn run(source: &[u8]) {
         debug!("pc: {}", pc);
 
         // Read & decode opcode
-        let opcode = source[pc];
-        debug!("opcode: {:#04X}", opcode);
+        let opcode = source[pc]; debug!("opcode: {:#04X}", opcode);
+        let ref instruction = im.decode_opcode(opcode);
 
         // Increment programm counter (skip opcode)
         pc += 1;
-
-        let ref instruction = im.decode_opcode(opcode);
 
         // Read arguments
         let argc = instruction.argc; debug!("argc: {}", argc);
