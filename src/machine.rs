@@ -14,6 +14,7 @@ pub use self::StateChange::*;
 
 /// Representation of an instruction (opcode + args + implementation)
 pub struct Instruction {
+    pub mnem: Mnemonic,
     pub opcode: u8,
     pub argc: usize,
     pub arg_types: &'static [Argument],
@@ -31,11 +32,28 @@ impl Instruction {
 
 
 /// Argument types
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum Argument {
     Value,      // The value of an address
     Address,    // An address
     Literal,    // A literal value
+}
+
+impl PartialEq<Argument> for Argument {
+    // It's a little tricky here as Value and Address are somewhat equal depending
+    // on the context ...
+    fn eq(&self, other: &Argument) -> bool {
+        match *self {
+            Value | Address => match *other {
+                Value | Address => true,
+                _ => false
+            },
+            Literal => match *other {
+                Literal => true,
+                _ => false
+            }
+        }
+    }
 }
 
 
@@ -216,7 +234,7 @@ make_instruction!(IDPrint(args[1], memory) -> Continue {
 
 // M[a] = random value (0 to 25 -> equal probability distribution)
 make_instruction!(IRandom(args[1], memory) {
-    let mut rand_range = RandRange::new(0u8, 255u8);
+    let mut rand_range = RandRange::new(0u8, 25u8);
     let mut rng = rand::thread_rng();
     Memset { address: args[0], value: rand_range.sample(&mut rng) }
 });
@@ -231,8 +249,9 @@ macro_rules! count_args {
 }
 
 macro_rules! instruction {
-    ( $opcode:expr => $instr:ident ) => (
+    ( $mnem:path : $opcode:expr => $instr:ident ) => (
         Instruction {
+            mnem: $mnem,
             opcode: $opcode,
             argc: 0,
             arg_types: &[],
@@ -240,8 +259,9 @@ macro_rules! instruction {
         }
     );
 
-    ( $opcode:expr => $instr:ident [ $($t:ident),* ] ) => (
+    ( $mnem:path : $opcode:expr => $instr:ident [ $($t:ident),* ] ) => (
         Instruction {
+            mnem: $mnem,
             opcode: $opcode,
             arg_types: &[$($t),*],
             argc: count_args!($($t),*),
@@ -279,7 +299,7 @@ macro_rules! instructions {
         static INSTRUCTIONS_TABLE: &'static [Instruction] = &[
             $(
                 $(
-                    instruction!($opcode => $instr [ $($t),* ])
+                    instruction!(Mnemonic::$mnem: $opcode => $instr [ $($t),* ])
                 ),*
             ),*
         ];
@@ -306,8 +326,8 @@ macro_rules! instructions {
                 }
             }
 
-            pub fn lookup_operations(&self, mnem: Mnemonic) -> &[&'static Instruction] {
-                &self.map[mnem]
+            pub fn lookup_operations(&self, mnem: &Mnemonic) -> &[&'static Instruction] {
+                &self.map[*mnem]
             }
 
             pub fn decode_opcode(&self, opcode: u8) -> &'static Instruction {
@@ -403,4 +423,4 @@ instructions! {
 }
 
 // Halt the program
-static INSTRUCTION_HALT: Instruction = instruction!(0xFF => IHalt);
+static INSTRUCTION_HALT: Instruction = instruction!(Mnemonic::HALT: 0xFF => IHalt);

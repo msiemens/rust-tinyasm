@@ -33,25 +33,23 @@ fn run(source: &[u8]) {
     let im = InstructionManager::new();
 
     loop {
-        debug!("");
-        debug!("source: {:?}@{}", source, source.len());
+        debug!("--- next instruction (pc: {})", pc);
         debug!("memory: {:?}@{}", &memory[..], memory.len());
-        debug!("pc: {}", pc);
 
         // Read & decode opcode
-        let opcode = source[pc]; debug!("opcode: {:#04X}", opcode);
+        let opcode = source[pc];
         let ref instruction = im.decode_opcode(opcode);
+
+        // Read arguments
+        let argc = instruction.argc;
+        if pc + argc >= source.len() { panic!("Reached end of input without HALT!") }
 
         // Increment programm counter (skip opcode)
         pc += 1;
 
-        // Read arguments
-        let argc = instruction.argc; debug!("argc: {}", argc);
-        if pc + argc >= source.len() { panic!("Reached end of input without HALT!") }
-
         let argv: &[u8] = if argc == 0 { &[] }
                           else { &source[pc .. pc + argc] };
-        debug!("argv: {:?}", argv);
+        debug!("instruction: {:?} ({:#04X}) {:?}", instruction.mnem, opcode, argv);
 
         // Increment programm counter (skip args)
         pc += argc;

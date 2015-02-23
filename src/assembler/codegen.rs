@@ -26,20 +26,19 @@ pub fn generate_binary(ast: Vec<StatementNode>) -> Vec<Vec<u8>> {
             }).collect();
 
             // Find the opcode matching the given argument types
-            let instr_class = im.lookup_operations(instr.clone());
+            let instr_class = im.lookup_operations(&instr);
             let op = instr_class.iter().find(|op| {
                 op.arg_types == arg_types
             }).unwrap_or_else(|| {
                 // Build allowed arguments string
-                /*let allowed_arg_types = instr_class.iter()
+                let allowed_arg_types = instr_class.iter()
                     .cloned()
-                    .map(|args| format!("{:?}", args))
+                    .map(|i| format!("{:?}", i.arg_types))
                     .collect::<Vec<_>>()
                     .connect(" or ");
 
                 fatal!("invalid arguments for {:?}: found {:?}, allowed: {:?}",
-                       instr, arg_types, allowed_arg_types; stmt)*/
-                panic!();
+                       instr, arg_types, allowed_arg_types; stmt)
             });
 
             // Finally, write the opcode
