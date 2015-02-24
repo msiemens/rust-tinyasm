@@ -29,37 +29,36 @@ pub fn main(args: Args) {
 
 fn run(source: &[u8]) {
     let mut memory = [0u8; MEMORY_SIZE];
-    let mut pc = 0;
+    let mut ip = 0;
     let im = InstructionManager::new();
 
     loop {
-        debug!("--- next instruction (pc: {})", pc);
+        debug!("--- next instruction (ip: {})", ip);
         debug!("memory: {:?}@{}", &memory[..], memory.len());
 
-        // Read & decode opcode
-        let opcode = source[pc];
+        // Step 1: Read instruction
+        let opcode = source[ip];
+
+        // Step 2: Decode opcode and read + decode the arguments
         let ref instruction = im.decode_opcode(opcode);
 
-        // Read arguments
         let argc = instruction.argc;
-        if pc + argc >= source.len() { panic!("Reached end of input without HALT!") }
+        if ip + argc >= source.len() {
+            panic!("Reached end of input without HALT!")
+        }
+        let args = &source[ip + 1 .. ip + 1 + argc];
 
-        // Increment programm counter (skip opcode)
-        pc += 1;
+        let decoded_args = im.decode_args(args, instruction.arg_types, &memory);
 
-        let argv: &[u8] = if argc == 0 { &[] }
-                          else { &source[pc .. pc + argc] };
-        debug!("instruction: {:?} ({:#04X}) {:?}", instruction.mnem, opcode, argv);
+        // Step 3 + 4: Execute instruction and process result
+        debug!("executing {:?} ({:#04X}) with {:?}", instruction.mnem, opcode, decoded_args);
 
-        // Increment programm counter (skip args)
-        pc += argc;
-
-        // Execute instruction
-        match instruction.execute(argv, &memory) {
+        match instruction.execute(decoded_args, &memory) {
             Continue => {},
             Jump { address } => {
                 debug!("Jumping to {}", address);
-                pc = address as usize;
+                ip = address as usize;
+                continue;  // We've already updated the instruction pointer
             },
             Memset { address, value } => {
                 debug!("Setting m[{}] = {}", address, value);
@@ -67,5 +66,9 @@ fn run(source: &[u8]) {
             },
             Halt => break
         }
+
+        // Update instruction pointer
+        ip += 1;  // Skip opcode
+        ip += argc;  // Skip args
     }
 }

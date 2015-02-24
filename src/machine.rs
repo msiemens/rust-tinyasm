@@ -23,10 +23,7 @@ pub struct Instruction {
 
 impl Instruction {
     pub fn execute(&self, args: &[u8], mem: &[u8]) -> StateChange {
-        let decoded_args = decode_args(args, &self.arg_types, mem);
-        debug!("interpreted args: {:?}", decoded_args);
-
-        (self.implementation)(&decoded_args, mem)
+        (self.implementation)(args, mem)
     }
 }
 
@@ -67,21 +64,6 @@ pub enum StateChange {
 
 
 // --- Instruction helpers ------------------------------------------------------
-
-/// A helper that decodes an instruction's arguments. That means it reads
-/// values from memory where addresses are passed.
-fn decode_args(args: &[u8], arg_types: &[Argument], mem: &[u8]) -> Vec<u8> {
-    arg_types.iter()
-        .zip(args.iter())
-        .map(|(ty, val)| {
-            match *ty {
-                Argument::Value => mem[*val as usize],
-                Argument::Address => *val,
-                Argument::Literal => *val,
-            }
-        })
-        .collect()
-}
 
 /// A helper to define an instruction
 macro_rules! make_instruction {
@@ -344,6 +326,19 @@ macro_rules! instructions {
                 } else {
                     &INSTRUCTIONS_TABLE[opcode as usize]
                 }
+            }
+
+            pub fn decode_args(&self, args: &[u8], arg_types: &[Argument], mem: &[u8]) -> Vec<u8> {
+                arg_types.iter()
+                    .zip(args.iter())
+                    .map(|(ty, val)| {
+                        match *ty {
+                            Argument::Value => mem[*val as usize],
+                            Argument::Address => *val,
+                            Argument::Literal => *val,
+                        }
+                    })
+                    .collect()
             }
 
         }
