@@ -28,11 +28,11 @@ main:
 
                                         ; Get random numbers
     RANDOM  $pi_rand0
-    @call(divide, $pi_rand0, $pi_rand_divider)
+    @call(divide, $pi_rand0, $pi_rand_divider)  ; $pi_rand0 ^ 2 would overflow otherwise
     MOV     $pi_rand0   $return
 
     RANDOM  $pi_rand1
-    @call(divide, $pi_rand1, $pi_rand_divider)
+    @call(divide, $pi_rand1, $pi_rand_divider)  ; $pi_rand1 ^ 2 would overflow otherwise
     MOV     $pi_rand1   $return
 
     @call(multiply, $pi_rand0, $pi_rand0)
