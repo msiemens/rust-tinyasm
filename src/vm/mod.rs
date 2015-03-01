@@ -53,7 +53,7 @@ fn run(source: &[u8]) {
         // Step 3 + 4: Execute instruction and process result
         debug!("executing {:?} ({:#04X}) with {:?}", instruction.mnem, opcode, decoded_args);
 
-        match instruction.execute(decoded_args, &memory) {
+        match instruction.execute(&decoded_args, &memory) {
             Continue => {},
             Jump { address } => {
                 debug!("Jumping to {}", address);
