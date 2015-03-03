@@ -1,15 +1,6 @@
 use std::old_io;
-use std::rc::Rc;
 use ansi_term::Colour::{Red, Yellow};
 use assembler::parser::SourceLocation;
-
-
-// FIXME: Use String intering with a table and something like `struct IString(u32)`
-pub type SharedString = Rc<String>;
-
-pub fn rcstr<'a>(s: &'a str) -> SharedString {
-    Rc::new(String::from_str(s))
-}
 
 
 #[macro_export]
@@ -70,9 +61,7 @@ pub fn fatal(msg: String, source: &SourceLocation) -> ! {
 #[macro_export]
 macro_rules! warn(
     ($msg:expr, $($args:expr),* ; $stmt:expr ) => {
-        {
-            ::assembler::util::warn(format!($msg, $($args),*), &$stmt.location)
-        }
+        ::assembler::util::warn(format!($msg, $($args),*), &$stmt.location)
     }
 );
 

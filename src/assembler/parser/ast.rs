@@ -3,6 +3,7 @@
 //! `Item` enum with all options and an `ItemNode` which contains the item
 //! and the location in the source file.
 
+use std::borrow::ToOwned;
 use std::fmt;
 
 use assembler::parser::lexer::SourceLocation;
@@ -157,7 +158,7 @@ impl Ident {
     }
 
     pub fn clone(&self) -> Ident {
-        Ident(self.as_str().to_string())
+        Ident(self.as_str().to_owned())
     }
 }
 

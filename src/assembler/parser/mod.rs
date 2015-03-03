@@ -6,6 +6,7 @@ pub mod ast;
 mod lexer;
 mod syntax_ext;
 
+use std::borrow::ToOwned;
 use std::collections::LinkedList;
 use assembler::util::fatal;
 use self::ast::*;
@@ -119,7 +120,7 @@ impl<'a> Parser<'a> {
 
     fn parse_ident(&mut self) -> Ident {
         let ident = match self.token {
-            Token::IDENT(ref id) => Ident(id.to_string()),
+            Token::IDENT(id) => Ident(id.to_owned()),
             _ => self.unexpected_token(&self.token, Some("a identifier"))
         };
         self.bump();
@@ -129,7 +130,7 @@ impl<'a> Parser<'a> {
 
     fn parse_path(&mut self) -> IPath {
         let path = match self.token {
-            Token::PATH(ref p) => IPath(p.to_string()),
+            Token::PATH(p) => IPath(p.to_owned()),
             _ => self.unexpected_token(&self.token, Some("a path"))
         };
         self.bump();
@@ -286,7 +287,6 @@ mod tests {
     use assembler::parser::ast::*;
     use assembler::parser::lexer::{Token, Lexer};
     use assembler::parser::lexer::Token::*;
-    use assembler::util::rcstr;
 
     use super::*;
 

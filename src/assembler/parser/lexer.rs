@@ -2,14 +2,17 @@
 //!
 //! Nothing outstanding, just a normal lexer.
 
+use std::borrow::ToOwned;
 use std::fmt;
 use std::rc::Rc;
 
-use assembler::util::{fatal, rcstr, SharedString};
+use assembler::util::fatal;
 use machine::{Mnemonic, WordSize};
 
 
 // --- Source Location ----------------------------------------------------------
+
+pub type SharedString = Rc<String>;
 
 #[derive(PartialEq, Eq, Clone)]
 pub struct SourceLocation {
@@ -22,7 +25,7 @@ impl_to_string!(SourceLocation: "{}:{}", filename, lineno);
 
 pub fn dummy_source() -> SourceLocation {
     SourceLocation {
-        filename: rcstr("<input>"),
+        filename: Rc::new(String::from_str("<input>")),
         lineno: 0
     }
 }
@@ -106,7 +109,6 @@ pub trait Lexer<'a> {
 
 // --- The Lexer: FileLexer -----------------------------------------------------
 
-// FIXME: Rename to StringLexer or something similr
 pub struct FileLexer<'a> {
     source: &'a str,
     file: SharedString,
@@ -123,7 +125,7 @@ impl<'a> FileLexer<'a> {
     pub fn new(source: &'a str, file: &str) -> FileLexer<'a> {
         FileLexer {
             source: source,
-            file: rcstr(file),
+            file: Rc::new(String::from_str(file)),
             len: source.len(),
 
             pos: 0,
@@ -173,10 +175,10 @@ impl<'a> FileLexer<'a> {
         }
     }
 
-    fn curr_repr(&self) -> SharedString {
+    fn curr_repr(&self) -> String {
         match self.curr {
-            Some(c) => Rc::new(c.escape_default().collect()),
-            None    => rcstr("EOF")
+            Some(c) => c.escape_default().collect(),
+            None    => "EOF".to_owned()
         }
     }
 
