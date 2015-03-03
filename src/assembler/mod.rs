@@ -7,6 +7,7 @@ use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
 use super::Args;
+use machine::WordSize;
 
 
 pub fn main(args: Args) {
@@ -68,7 +69,7 @@ fn read_file(input_path: &Path) -> String {
     contents
 }
 
-fn write_binary(binary: Vec<Vec<u8>>, output_path: &Path) {
+fn write_binary(binary: Vec<Vec<WordSize>>, output_path: &Path) {
     let mut file = match File::create(output_path) {
         Ok(f) => f,
         Err(err) => panic!("Can't write to {}: {}", output_path.display(), err)

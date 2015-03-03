@@ -6,7 +6,7 @@ use std::fmt;
 use std::rc::Rc;
 
 use assembler::util::{fatal, rcstr, SharedString};
-use machine::Mnemonic;
+use machine::{Mnemonic, WordSize};
 
 
 // --- Source Location ----------------------------------------------------------
@@ -31,7 +31,7 @@ pub fn dummy_source() -> SourceLocation {
 // --- List of Tokens -----------------------------------------------------------
 
 #[derive(Clone, PartialEq, Eq)]
-pub enum Token {
+pub enum Token<'a> {
     HASH,
     COLON,
     DOLLAR,
@@ -46,10 +46,10 @@ pub enum Token {
     RBRACKET,
 
     MNEMONIC(Mnemonic),
-    IDENT(SharedString),
-    INTEGER(u8),
-    CHAR(u8),
-    PATH(SharedString),
+    IDENT(&'a str),
+    INTEGER(WordSize),
+    CHAR(WordSize),
+    PATH(&'a str),
 
     EOF,
 
@@ -57,7 +57,7 @@ pub enum Token {
     //UNKNOWN(String)
 }
 
-impl fmt::Debug for Token {
+impl<'a> fmt::Debug for Token<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Token::HASH       => write!(f, "#"),
@@ -85,7 +85,7 @@ impl fmt::Debug for Token {
     }
 }
 
-impl fmt::Display for Token {
+impl<'a> fmt::Display for Token<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }
@@ -97,10 +97,10 @@ impl fmt::Display for Token {
 // The first one is used for processing a file on the hard drive, the second
 // is used for testing purposes.
 
-pub trait Lexer {
+pub trait Lexer<'a> {
     fn get_source(&self) -> SourceLocation;
-    fn next_token(&mut self) -> Token;
-    fn tokenize(&mut self) -> Vec<Token>;
+    fn next_token(&mut self) -> Token<'a>;
+    fn tokenize(&mut self) -> Vec<Token<'a>>;
 }
 
 
@@ -120,7 +120,7 @@ pub struct FileLexer<'a> {
 
 impl<'a> FileLexer<'a> {
 
-    pub fn new(source: &'a str, file: &'a str) -> FileLexer<'a> {
+    pub fn new(source: &'a str, file: &str) -> FileLexer<'a> {
         FileLexer {
             source: source,
             file: rcstr(file),
@@ -199,15 +199,14 @@ impl<'a> FileLexer<'a> {
         self.bump();
     }
 
-    fn collect<F>(&mut self, cond: F) -> SharedString
+    fn collect<F>(&mut self, cond: F) -> &'a str
             where F: Fn(&char) -> bool {
-        let mut chars = vec![];
+        let start = self.pos;
 
         debug!("start colleting");
 
         while let Some(c) = self.curr {
             if cond(&c) {
-                chars.push(c);
                 self.bump();
             } else {
                 debug!("colleting finished");
@@ -215,7 +214,9 @@ impl<'a> FileLexer<'a> {
             }
         }
 
-        Rc::new(chars.into_iter().collect())
+        let end = self.pos;
+
+        &self.source[start..end]
     }
 
     fn eat_all<F>(&mut self, cond: F)
@@ -228,7 +229,7 @@ impl<'a> FileLexer<'a> {
 
     // --- File Lexer: Tokenizers ------------------------------------------------
 
-    fn tokenize_mnemonic(&mut self) -> Token {
+    fn tokenize_mnemonic(&mut self) -> Token<'a> {
         debug!("Tokenizing a mnemonic");
 
         let mnemonic_str = self.collect(|c| c.is_alphabetic() && c.is_uppercase());
@@ -240,7 +241,7 @@ impl<'a> FileLexer<'a> {
         Token::MNEMONIC(mnemonic)
     }
 
-    fn tokenize_ident(&mut self) -> Token {
+    fn tokenize_ident(&mut self) -> Token<'a> {
         debug!("Tokenizing an ident");
 
         let ident = self.collect(|c| {
@@ -250,7 +251,7 @@ impl<'a> FileLexer<'a> {
         Token::IDENT(ident)
     }
 
-    fn tokenize_digit(&mut self) -> Token {
+    fn tokenize_digit(&mut self) -> Token<'a> {
         debug!("Tokenizing a digit");
 
         let integer_str = self.collect(|c| c.is_numeric());
@@ -262,7 +263,7 @@ impl<'a> FileLexer<'a> {
         Token::INTEGER(integer)
     }
 
-    fn tokenize_char(&mut self) -> Token {
+    fn tokenize_char(&mut self) -> Token<'a> {
         debug!("Tokenizing a char");
 
         self.bump();  // '\'' matched, move on
@@ -280,7 +281,7 @@ impl<'a> FileLexer<'a> {
                 None => self.fatal(format!("expected escaped char, found EOF"))
             }
         } else {
-            Token::CHAR(c as u8)
+            Token::CHAR(c as WordSize)
         };
         self.bump();
 
@@ -290,7 +291,7 @@ impl<'a> FileLexer<'a> {
         tok
     }
 
-    fn tokenize_path(&mut self) -> Token {
+    fn tokenize_path(&mut self) -> Token<'a> {
         debug!("Tokenizing a path");
 
         self.bump();  // '<' matched, move on
@@ -307,7 +308,7 @@ impl<'a> FileLexer<'a> {
     ///
     /// If `None` is returned, the current token is to be ignored and the
     /// lexer requests the reader to read the next token instead.
-    fn read_token(&mut self) -> Option<Token> {
+    fn read_token(&mut self) -> Option<Token<'a>> {
         let c = match self.curr {
             Some(c) => c,
             None    => return Some(Token::EOF)
@@ -356,7 +357,7 @@ impl<'a> FileLexer<'a> {
     }
 }
 
-impl<'a> Lexer for FileLexer<'a> {
+impl<'a> Lexer<'a> for FileLexer<'a> {
     fn get_source(&self) -> SourceLocation {
         SourceLocation {
             filename: self.file.clone(),
@@ -364,7 +365,7 @@ impl<'a> Lexer for FileLexer<'a> {
         }
     }
 
-    fn next_token(&mut self) -> Token {
+    fn next_token(&mut self) -> Token<'a> {
         if self.is_eof() {
             Token::EOF
         } else {
@@ -378,7 +379,7 @@ impl<'a> Lexer for FileLexer<'a> {
     }
 
     #[allow(dead_code)]  // Used for tests
-    fn tokenize(&mut self) -> Vec<Token> {
+    fn tokenize(&mut self) -> Vec<Token<'a>> {
         let mut tokens = vec![];
 
         while !self.is_eof() {
@@ -398,12 +399,12 @@ impl<'a> Lexer for FileLexer<'a> {
 
 // --- The Lexer: Vec<Token> ----------------------------------------------------
 
-impl Lexer for Vec<Token> {
+impl<'a> Lexer<'a> for Vec<Token<'a>> {
     fn get_source(&self) -> SourceLocation {
         dummy_source()
     }
 
-    fn next_token(&mut self) -> Token {
+    fn next_token(&mut self) -> Token<'a> {
         if self.len() >= 1 {
             self.remove(0)
         } else {
@@ -411,7 +412,7 @@ impl Lexer for Vec<Token> {
         }
     }
 
-    fn tokenize(&mut self) -> Vec<Token> {
+    fn tokenize(&mut self) -> Vec<Token<'a>> {
         self.iter().cloned().collect()
     }
 }
@@ -421,11 +422,13 @@ impl Lexer for Vec<Token> {
 
 #[cfg(test)]
 mod tests {
+    use std::borrow::ToOwned;
     use std::rc::Rc;
 
     use super::{Token, Lexer, FileLexer};
     use super::Token::*;
     use assembler::util::rcstr;
+    use machine::WordSize;
 
     fn tokenize(src: &'static str) -> Vec<Token> {
         FileLexer::new(src, "<test>").tokenize()
@@ -440,13 +443,13 @@ mod tests {
     #[test]
     fn test_ident() {
         assert_eq!(tokenize("abc"),
-                   vec![IDENT(rcstr("abc"))]);
+                   vec![IDENT("abc")]);
     }
 
     #[test]
     fn test_ident_with_underscore() {
         assert_eq!(tokenize("abc_efg"),
-                   vec![IDENT(rcstr("abc_efg"))]);
+                   vec![IDENT("abc_efg")]);
     }
 
     #[test]
@@ -458,19 +461,19 @@ mod tests {
     #[test]
     fn test_char() {
         assert_eq!(tokenize("'a'"),
-                   vec![CHAR('a' as u8)]);
+                   vec![CHAR('a' as WordSize)]);
         assert_eq!(tokenize("' '"),
-                   vec![CHAR(' ' as u8)]);
+                   vec![CHAR(' ' as WordSize)]);
         assert_eq!(tokenize("'\n'"),
-                   vec![CHAR('\n' as u8)]);
+                   vec![CHAR('\n' as WordSize)]);
         assert_eq!(tokenize("'\\\''"),
-                   vec![CHAR('\'' as u8)]);
+                   vec![CHAR('\'' as WordSize)]);
     }
 
     #[test]
     fn test_path() {
         assert_eq!(tokenize("<asd>"),
-                   vec![PATH(rcstr("asd"))]);
+                   vec![PATH("asd")]);
     }
 
     #[test]

@@ -6,8 +6,8 @@
 use std::fmt;
 
 use assembler::parser::lexer::SourceLocation;
-use assembler::util::SharedString;
 use machine::Mnemonic as Instruction;  // FIXME
+use machine::WordSize;
 
 
 pub type Program = Vec<StatementNode>;
@@ -48,7 +48,7 @@ macro_rules! define(
 define!(Statement -> StatementNode:
     Include(IPath),                         // Ex: #import <...>
     Label(Ident),                           // Ex: label:
-    Const(Ident, ArgumentNode),             // Ex: $const = 2
+    Const(Ident, ArgumentNode),         // Ex: $const = 2
     Operation(Mnemonic, Vec<ArgumentNode>), // Ex: @macro(args, ...)
     Macro(Ident, Vec<MacroArgumentNode>)
 );
@@ -89,11 +89,11 @@ impl fmt::Display for Statement {
 // --- AST: Compound items: Arguments -------------------------------------------
 
 define!(Argument -> ArgumentNode:
-    Literal(u8),            // A simple literal
-    Address(Option<u8>),    // An address (`[0]`) or an auto-filled address (`[_]`)
+    Literal(WordSize),            // A simple literal
+    Address(Option<WordSize>),    // An address (`[0]`) or an auto-filled address (`[_]`)
     Const(Ident),           // A constant (`$const`)
     Label(Ident),           // A label (`:label`)
-    Char(u8)                // A character (`'a'`)
+    Char(WordSize)                // A character (`'a'`)
 );
 
 impl fmt::Debug for Argument {
@@ -148,16 +148,16 @@ impl fmt::Display for MacroArgument {
 // --- AST: Single items: Identifier --------------------------------------------
 
 #[derive(PartialEq, Eq, Hash, Clone)]
-pub struct Ident(pub SharedString);
+pub struct Ident(pub String);
 
 impl Ident {
-    pub fn as_str(&self) -> SharedString {
+    pub fn as_str(&self) -> &str {
         let Ident(ref s) = *self;
-        s.clone()
+        s
     }
 
     pub fn clone(&self) -> Ident {
-        Ident(self.as_str())
+        Ident(self.as_str().to_string())
     }
 }
 
@@ -196,12 +196,12 @@ impl fmt::Display for Mnemonic {
 // --- AST: Single items: Import Path -------------------------------------------
 
 #[derive(PartialEq, Eq, Clone)]
-pub struct IPath(pub SharedString);
+pub struct IPath(pub String);
 
 impl IPath {
-    pub fn as_str(&self) -> SharedString {
+    pub fn as_str(&self) -> &str {
         let IPath(ref p) = *self;
-        p.clone()
+        &**p
     }
 }
 

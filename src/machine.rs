@@ -10,6 +10,10 @@ use self::Argument::*;
 pub use self::StateChange::*;
 
 
+pub type WordSize = u8;
+const RAND_MAX: u8 = 25;
+
+
 // --- Instruction + helpers ---------------------------------------------
 
 /// Representation of an instruction (opcode + args + implementation)
@@ -18,11 +22,11 @@ pub struct Instruction {
     pub opcode: u8,
     pub argc: usize,
     pub arg_types: &'static [Argument],
-    implementation: fn(&[u8], &[u8]) -> StateChange
+    implementation: fn(&[WordSize], &[WordSize]) -> StateChange
 }
 
 impl Instruction {
-    pub fn execute(&self, args: &[u8], mem: &[u8]) -> StateChange {
+    pub fn execute(&self, args: &[WordSize], mem: &[WordSize]) -> StateChange {
         (self.implementation)(args, mem)
     }
 }
@@ -56,8 +60,8 @@ impl PartialEq<Argument> for Argument {
 
 /// Possible results of instruction execution
 pub enum StateChange {
-    Memset { address: u8, value: u8 },
-    Jump { address: u8 },
+    Memset { address: WordSize, value: WordSize },
+    Jump { address: WordSize },
     Halt,
     Continue
 }
@@ -72,7 +76,7 @@ macro_rules! make_instruction {
         pub struct $name;
         impl $name {
             #[allow(unused_variables)]
-            fn execute(args: &[u8], mem: &[u8]) -> StateChange {
+            fn execute(args: &[WordSize], mem: &[WordSize]) -> StateChange {
                 $ret_type
             }
         }
@@ -83,7 +87,7 @@ macro_rules! make_instruction {
         pub struct $name;
         impl $name {
             #[allow(unused_variables)]
-            fn execute($args: &[u8], $mem: &[u8]) -> StateChange {
+            fn execute($args: &[WordSize], $mem: &[WordSize]) -> StateChange {
                 $body;
                 $ret_type
             }
@@ -95,7 +99,7 @@ macro_rules! make_instruction {
         pub struct $name;
         impl $name {
             #[allow(unused_variables)]
-            fn execute($args: &[u8], $mem: &[u8]) -> StateChange {
+            fn execute($args: &[WordSize], $mem: &[WordSize]) -> StateChange {
                 $body
             }
         }
@@ -216,7 +220,7 @@ make_instruction!(IDPrint(args[1], memory) -> Continue {
 
 // M[a] = random value (0 to 25 -> equal probability distribution)
 make_instruction!(IRandom(args[1], memory) {
-    let mut rand_range = RandRange::new(0u8, 25u8);
+    let mut rand_range = RandRange::new(0, RAND_MAX);
     let mut rng = rand::thread_rng();
     Memset { address: args[0], value: rand_range.sample(&mut rng) }
 });
@@ -258,7 +262,7 @@ macro_rules! instructions {
         // Remember: HALT is not part of the macro's arguments as its opcode
         // doesn't follow the scheme of the other instructions.
 
-        #[derive(Clone, PartialEq, Eq, Debug, Hash)]
+        #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
         pub enum Mnemonic {
             $( $mnem, )* HALT
         }
@@ -328,7 +332,7 @@ macro_rules! instructions {
                 }
             }
 
-            pub fn decode_args(&self, args: &[u8], arg_types: &[Argument], mem: &[u8]) -> Vec<u8> {
+            pub fn decode_args(&self, args: &[WordSize], arg_types: &[Argument], mem: &[WordSize]) -> Vec<u8> {
                 arg_types.iter()
                     .zip(args.iter())
                     .map(|(ty, val)| {

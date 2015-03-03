@@ -7,7 +7,7 @@ mod lexer;
 mod syntax_ext;
 
 use std::collections::LinkedList;
-use assembler::util::{fatal, rcstr};
+use assembler::util::fatal;
 use self::ast::*;
 use self::lexer::{Lexer, FileLexer, Token};
 
@@ -17,17 +17,17 @@ pub use self::syntax_ext::expand_syntax_extensions;
 
 pub struct Parser<'a> {
     location: SourceLocation,
-    token: Token,
-    buffer: LinkedList<Token>,
-    lexer: Box<Lexer + 'a>
+    token: Token<'a>,
+    buffer: LinkedList<Token<'a>>,
+    lexer: Box<Lexer<'a> + 'a>
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(source: &'a str, file: &'a str) -> Parser<'a> {
+    pub fn new(source: &'a str, file: &str) -> Parser<'a> {
         Parser::with_lexer(Box::new(FileLexer::new(source, file)))
     }
 
-    pub fn with_lexer(mut lx: Box<Lexer + 'a>) -> Parser<'a> {
+    pub fn with_lexer(mut lx: Box<Lexer<'a> + 'a>) -> Parser {
         Parser {
             token: lx.next_token(),
             location: lx.get_source(),
@@ -119,7 +119,7 @@ impl<'a> Parser<'a> {
 
     fn parse_ident(&mut self) -> Ident {
         let ident = match self.token {
-            Token::IDENT(ref id) => Ident(id.clone()),
+            Token::IDENT(ref id) => Ident(id.to_string()),
             _ => self.unexpected_token(&self.token, Some("a identifier"))
         };
         self.bump();
@@ -129,7 +129,7 @@ impl<'a> Parser<'a> {
 
     fn parse_path(&mut self) -> IPath {
         let path = match self.token {
-            Token::PATH(ref p) => IPath(p.clone()),
+            Token::PATH(ref p) => IPath(p.to_string()),
             _ => self.unexpected_token(&self.token, Some("a path"))
         };
         self.bump();
@@ -197,7 +197,7 @@ impl<'a> Parser<'a> {
         let location = self.update_location();
 
         self.bump();
-        self.expect(&Token::IDENT(rcstr("import")));
+        self.expect(&Token::IDENT("import"));
         let path = self.parse_path();
 
         Statement::new(Statement::Include(path), location)
@@ -225,8 +225,8 @@ impl<'a> Parser<'a> {
     fn parse_operation(&mut self) -> StatementNode {
         let location = self.update_location();
 
-        let mn = if let Token::MNEMONIC(ref mn) = self.token {
-            Mnemonic(mn.clone())
+        let mn = if let Token::MNEMONIC(mn) = self.token {
+            Mnemonic(mn)
         } else {
             self.unexpected_token(&self.token, Some("a mnemonic"))
         };
@@ -280,6 +280,7 @@ impl<'a> Parser<'a> {
 
 #[cfg(test)]
 mod tests {
+    use std::borrow::ToOwned;
     use std::rc::Rc;
 
     use assembler::parser::ast::*;
@@ -289,23 +290,23 @@ mod tests {
 
     use super::*;
 
-    fn parse<'a, F, T>(toks: Vec<Token>, f: F) -> T where F: Fn(&mut Parser<'a>) -> T {
+    fn parse<'a, F, T>(toks: Vec<Token<'a>>, f: F) -> T where F: Fn(&mut Parser<'a>) -> T {
         f(&mut Parser::with_lexer(Box::new(toks) as Box<Lexer>))
     }
 
     fn ident_from_str(s: &str) -> Ident {
-        Ident(Rc::new(s.to_owned()))
+        Ident(s.to_owned())
     }
 
     fn path_from_str(s: &str) -> IPath {
-        IPath(Rc::new(s.to_owned()))
+        IPath(s.to_owned())
     }
 
     #[test]
     fn test_statements() {
         assert_eq!(
             parse(
-                vec![HASH, IDENT(rcstr("import")), PATH(rcstr("as/d")),
+                vec![HASH, IDENT("import"), PATH("as/d"),
                      MNEMONIC("HALT".parse().unwrap())],
                 |p| p.parse()
             ),
@@ -330,7 +331,7 @@ mod tests {
     #[test]
     fn test_include() {
         assert_eq!(
-            parse(vec![HASH, IDENT(rcstr("import")), PATH(rcstr("as/d"))],
+            parse(vec![HASH, IDENT("import"), PATH("as/d")],
                   |p| p.parse_statement()),
             Statement::new(
                 Statement::Include(
@@ -344,7 +345,7 @@ mod tests {
     #[test]
     fn test_label_def() {
         assert_eq!(
-            parse(vec![IDENT(rcstr("lbl")), COLON],
+            parse(vec![IDENT("lbl"), COLON],
                   |p| p.parse_statement()),
             Statement::new(
                 Statement::Label(
@@ -358,7 +359,7 @@ mod tests {
     #[test]
     fn test_const_def() {
         assert_eq!(
-            parse(vec![DOLLAR, IDENT(rcstr("c")), EQ, INTEGER(0)],
+            parse(vec![DOLLAR, IDENT("c"), EQ, INTEGER(0)],
                   |p| p.parse_statement()),
             Statement::new(
                 Statement::Const(
@@ -396,7 +397,7 @@ mod tests {
     #[test]
     fn test_macro() {
         assert_eq!(
-            parse(vec![AT, IDENT(rcstr("macro")),
+            parse(vec![AT, IDENT("macro"),
                        LPAREN, INTEGER(0), COMMA, INTEGER(0), RPAREN],
                   |p| p.parse_statement()),
             Statement::new(
@@ -467,7 +468,7 @@ mod tests {
     #[test]
     fn test_const() {
         assert_eq!(
-            parse(vec![DOLLAR, IDENT(rcstr("asd"))],
+            parse(vec![DOLLAR, IDENT("asd")],
                   |p| p.parse_argument()),
             Argument::new(
                 Argument::Const(
@@ -481,7 +482,7 @@ mod tests {
     #[test]
     fn test_label() {
         assert_eq!(
-            parse(vec![COLON, IDENT(rcstr("asd"))],
+            parse(vec![COLON, IDENT("asd")],
                   |p| p.parse_argument()),
             Argument::new(
                 Argument::Label(
@@ -524,7 +525,7 @@ mod tests {
     #[test]
     fn test_macro_arg_ident() {
         assert_eq!(
-            parse(vec![IDENT(rcstr("asd"))],
+            parse(vec![IDENT("asd")],
                   |p| p.parse_macro_argument()),
             MacroArgument::new(
                 MacroArgument::Ident(
@@ -539,7 +540,7 @@ mod tests {
     fn test_op_and_const() {
         assert_eq!(
             parse(vec![MNEMONIC("HALT".parse().unwrap()),
-                       DOLLAR, IDENT(rcstr("c")), EQ, INTEGER(0)],
+                       DOLLAR, IDENT("c"), EQ, INTEGER(0)],
                   |p| p.parse()),
             vec![
                 Statement::new(

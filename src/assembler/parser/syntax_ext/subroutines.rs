@@ -31,7 +31,7 @@ pub fn expand(source: &mut Program) {
     SubroutineExpander {
         source: source,
         routines: HashMap::new()
-    }.expand()
+    }.expand();
 }
 
 
@@ -41,11 +41,11 @@ pub fn expand(source: &mut Program) {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 enum SubroutineState {
-    SubroutineStart(Ident),  // Definition of a new subroutine
-    InSubroutine,            // Subroutine body
-    SubroutineEnd,           // End of the body
+    SubroutineStart(Ident), // Definition of a new subroutine
+    InSubroutine,               // Subroutine body
+    SubroutineEnd,              // End of the body
     SubroutineCall(Ident, Vec<MacroArgumentNode>),  // Call of a subroutine
-    NotInSubroutine          // Everything else
+    NotInSubroutine            // Everything else
 }
 
 struct SubroutineExpander<'a> {
@@ -79,7 +79,6 @@ impl<'a> SubroutineExpander<'a> {
                 _ => true
             }
         });
-
     }
 
     /// Collect all subroutine definitions and store them in `self.routines`
@@ -90,7 +89,7 @@ impl<'a> SubroutineExpander<'a> {
                 _ => continue
             };
 
-            if *ident.as_str() == "start" {
+            if ident.as_str() == "start" {
                 // Two args expected: name and number of arguments
                 if args.len() != 2 {
                     fatal!("invalid number of Argument::s for @start: {}",
@@ -228,7 +227,7 @@ impl<'a> SubroutineExpander<'a> {
     fn get_state_for(&self, stmt: &StatementNode, state: &SubroutineState) -> SubroutineState {
         match stmt.value {
             Statement::Macro(ref ident, ref args) => {
-                match &**ident.as_str() {
+                match ident.as_str() {
                     "start" => {
                         if *state == InSubroutine { fatal!("can't nest subroutines"; stmt); }
 

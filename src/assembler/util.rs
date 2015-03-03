@@ -33,8 +33,11 @@ macro_rules! impl_to_string(
 #[macro_export]
 macro_rules! overflow_check(
     ($val:expr, $stmt:expr) => (
-        if $val > 255 { warn!("overflow: {} > 255", $val; $stmt); ($val % 256) as u8 }
-        else { $val as u8 }
+        if $val > 255 {
+            warn!("overflow: {} > 255", $val; $stmt);
+            ($val as u32 % !(0 as ::machine::WordSize) as u32) as ::machine::WordSize
+        }
+        else { $val as ::machine::WordSize }
     )
 );
 
@@ -51,9 +54,7 @@ macro_rules! fatal(
     ($msg:expr ; $stmt:expr) => {
         {
             use std::borrow::ToOwned;
-            use assembler::util::fatal;
-
-            fatal($msg.to_owned(), &$stmt.location)
+            ::assembler::util::fatal($msg.to_owned(), &$stmt.location)
         }
     };
 );
@@ -70,9 +71,7 @@ pub fn fatal(msg: String, source: &SourceLocation) -> ! {
 macro_rules! warn(
     ($msg:expr, $($args:expr),* ; $stmt:expr ) => {
         {
-            use assembler::util::warn;
-
-            warn(format!($msg, $($args),*), &$stmt.location)
+            ::assembler::util::warn(format!($msg, $($args),*), &$stmt.location)
         }
     }
 );

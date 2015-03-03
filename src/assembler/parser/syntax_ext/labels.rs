@@ -18,7 +18,7 @@ use assembler::parser::ast::{Program, Statement, Argument, Ident};
 
 
 pub fn expand(source: &mut Program) {
-    let mut labels: HashMap<Ident, usize> = HashMap::new();
+    let mut labels: HashMap<Ident, u32> = HashMap::new();
     let mut offset = 0;
 
     // Pass 1: Collect label definitions
@@ -36,7 +36,7 @@ pub fn expand(source: &mut Program) {
             // Increment the offset (only operation statements will count
             // in the final binary)
             Statement::Operation(_, ref args) => {
-                offset += 1 + args.len();
+                offset += 1 + args.len() as u32;
                 true  // Not a label definition, keep it
             },
 
