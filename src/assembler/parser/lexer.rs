@@ -429,7 +429,6 @@ mod tests {
 
     use super::{Token, Lexer, FileLexer};
     use super::Token::*;
-    use assembler::util::rcstr;
     use machine::WordSize;
 
     fn tokenize(src: &'static str) -> Vec<Token> {

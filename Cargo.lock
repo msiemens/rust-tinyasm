@@ -3,8 +3,8 @@ name = "tiny-asm"
 version = "0.0.1"
 dependencies = [
  "ansi_term 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "docopt 0.6.40 (registry+https://github.com/rust-lang/crates.io-index)",
- "docopt_macros 0.6.40 (registry+https://github.com/rust-lang/crates.io-index)",
+ "docopt 0.6.43 (registry+https://github.com/rust-lang/crates.io-index)",
+ "docopt_macros 0.6.43 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -19,7 +19,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "docopt"
-version = "0.6.40"
+version = "0.6.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -29,10 +29,10 @@ dependencies = [
 
 [[package]]
 name = "docopt_macros"
-version = "0.6.40"
+version = "0.6.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "docopt 0.6.40 (registry+https://github.com/rust-lang/crates.io-index)",
+ "docopt 0.6.43 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
