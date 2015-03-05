@@ -1,9 +1,8 @@
 use std::collections::{HashMap, LinkedList};
 use ast::*;
-use driver;
 use front::Lexer;
 use front::tokens::{Token, Keyword};
-use front::parselet::{get_prefix_parselets, get_infix_parselets};
+use front::parselet::PARSELET_MANAGER;
 use util::fatal;
 
 
@@ -11,8 +10,7 @@ pub struct Parser<'a> {
     location: usize,
     pub token: Token,
     buffer: LinkedList<Token>,
-    lexer: Lexer<'a>,
-    level: u32
+    lexer: Lexer<'a>
 }
 
 impl<'a> Parser<'a> {
@@ -21,8 +19,7 @@ impl<'a> Parser<'a> {
             token: lx.next_token(),
             location: lx.get_source(),
             buffer: LinkedList::new(),
-            lexer: lx,
-            level: 0
+            lexer: lx
         }
     }
 
@@ -216,8 +213,11 @@ impl<'a> Parser<'a> {
     // --- Parsing: Expressions -------------------------------------------------
 
     pub fn parse_expression(&mut self) -> Node<Expression> {
+        self.parse_expression_with_precedence(0)
+    }
+
+    pub fn parse_expression_with_precedence(&mut self, precedence: u32) -> Node<Expression> {
         match self.token {
-            //Token::Semicolon => Node::new(Expression::Unit),
             Token::Keyword(Keyword::If) => self.parse_if(),
             Token::Keyword(Keyword::While) => self.parse_while(),
             Token::Keyword(Keyword::Return) => {
@@ -236,46 +236,47 @@ impl<'a> Parser<'a> {
                 self.bump();
                 Node::new(Expression::Break)
             },
-            _ => {
-                println!("prefix {}: current token: {:?}", self.level, self.token);
-
-                let token = self.token;
-                self.bump();
-
-                let map = get_prefix_parselets();
-                let parselet = match map.get(&token.ty()) {
-                    Some(p) => p,
-                    None => self.unexpected_token(Some("a prefix expression"))
-                };
-
-                println!("prefix {}: parselet: {:?}", self.level, parselet.name());
-                self.level += 1;
-                let left = parselet.parse(self, token);
-                self.level -= 1;
-                println!("prefix {}: done", self.level);
-
-
-                println!("infix {}: current token: {:?}", self.level, self.token);
-                let token = self.token;
-                let map = get_infix_parselets();
-                let parselet = match map.get(&token.ty()) {
-                    Some(p) => p,
-                    None => {
-                        println!("infix {}: early return", self.level);
-                        return left
-                    }
-                };
-                println!("infix {}: parselet: {:?}", self.level, parselet.name());
-
-                self.level += 1;
-                self.bump();
-                let expr = parselet.parse(self, left, token);
-                self.level -= 1;
-                println!("infix {}: done", self.level);
-
-                expr
-            }
+            _ => self.prett_parser(0)
         }
+    }
+
+    fn current_precedence(&self) -> u32 {
+        match PARSELET_MANAGER.lookup_infix(self.token) {
+            Some(p) => p.precedence(),
+            None => 0
+        }
+    }
+
+    fn prett_parser(&mut self, precedence: u32) -> Node<Expression> {
+        debug!("prefix: current token: {:?}", self.token);
+
+        let token = self.token;
+        self.bump();
+
+        let pparselet = match PARSELET_MANAGER.lookup_prefix(token) {
+            Some(p) => p,
+            None => self.unexpected_token(Some("a prefix expression"))
+        };
+
+        debug!("prefix: parselet: {:?}", pparselet.name());
+
+        let mut left = pparselet.parse(self, token);
+
+        debug!("prefix: done");
+
+        while precedence < self.current_precedence() {
+            debug!("infix: current token: {:?}", self.token);
+
+            let token = self.token;
+            let iparselet = PARSELET_MANAGER.lookup_infix(token).unwrap();
+            debug!("infix: parselet: {:?}", iparselet.name());
+
+            self.bump();
+            left = iparselet.parse(self, left, token);
+            debug!("infix: done");
+        }
+
+        left
     }
 
     fn parse_if(&mut self) -> Node<Expression> {

@@ -193,6 +193,7 @@ impl<'a> Lexer<'a> {
         };
 
         let token = match c {
+            // TODO: Comments & macro
             // Binops
             '+' => {
                 self.bump();

@@ -116,7 +116,7 @@ pub enum Symbol {
 
 pub struct Block {
     pub stmts: Vec<Node<Statement>>,
-    pub expr: Option<Box<Node<Expression>>>
+    pub expr: Option<Box<Node<Expression>>>  // FIXME: Use a Unit expr instead?
 }
 
 
@@ -180,7 +180,7 @@ pub enum Expression {
     Variable {
         name: Ident
     },
-    Unit
+    //Unit
 }
 
 
@@ -198,6 +198,7 @@ impl Deref for Ident {
 
 
 // --- Debug implementations ----------------------------------------------------
+// FIXME: Replace with pretty printer
 
 impl fmt::Debug for BinOp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

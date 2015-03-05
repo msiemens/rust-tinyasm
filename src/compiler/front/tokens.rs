@@ -31,101 +31,39 @@ pub enum Token {
 impl Token {
     pub fn ty(&self) -> TokenType {
         match *self {
-            Token::BinOp(op) => match op {
-                BinOp::Add      => TokenType::Add,
-                BinOp::Sub      => TokenType::Sub,
-                BinOp::Mul      => TokenType::Mul,
-                BinOp::Div      => TokenType::Div,
-                BinOp::Mod      => TokenType::Mod,
-                BinOp::Pow      => TokenType::Pow,
-                BinOp::And      => TokenType::And,
-                BinOp::Or       => TokenType::Or,
-                BinOp::BitXor   => TokenType::BitXor,
-                BinOp::BitAnd   => TokenType::BitAnd,
-                BinOp::BitOr    => TokenType::BitOr,
-                BinOp::Shl      => TokenType::Shl,
-                BinOp::Shr      => TokenType::Shr,
-                BinOp::EqEq     => TokenType::EqEq,
-                BinOp::Lt       => TokenType::Lt,
-                BinOp::Le       => TokenType::Le,
-                BinOp::Ne       => TokenType::Ne,
-                BinOp::Ge       => TokenType::Ge,
-                BinOp::Gt       => TokenType::Gt,
-            },
-            Token::UnOp(op) => match op {
-                UnOp::Not => TokenType::Not,
-                UnOp::Neg => TokenType::Neg,
-            },
+            Token::BinOp(op) => TokenType::BinOp(op),
+            Token::UnOp(op) => TokenType::UnOp,
             Token::LParen       => TokenType::LParen,
-            Token::RParen       => TokenType::RParen,
-            Token::LBrace       => TokenType::LBrace,
-            Token::RBrace       => TokenType::RBrace,
-            Token::Comma        => TokenType::Comma,
-            Token::Colon        => TokenType::Colon,
-            Token::Semicolon    => TokenType::Semicolon,
-            Token::RArrow       => TokenType::RArrow,
             Token::Eq           => TokenType::Eq,
 
             Token::Keyword(kw)  => {
                 match kw {
-                    Keyword::True   => TokenType::True,
-                    Keyword::False  => TokenType::False,
-                    _               => TokenType::Keyword
+                    Keyword::True   => TokenType::Literal,
+                    Keyword::False  => TokenType::Literal,
+
+                    _               => TokenType::Other
                 }
             },
             Token::Ident(..)    => TokenType::Ident,
-            Token::Type(..)     => TokenType::Type,
-            Token::Int(..)      => TokenType::Int,
-            Token::Char(..)     => TokenType::Char,
+            Token::Int(..)      => TokenType::Literal,
+            Token::Char(..)     => TokenType::Literal,
 
-            _ => panic!("Invalid token type")
+            _ => TokenType::Other
         }
     }
 }
 
+/// Token type. Used for the Prett Parser
 #[derive(Copy, Eq, PartialEq, Hash, Debug)]
 pub enum TokenType {
-    LParen,
-    RParen,
-    LBrace,
-    RBrace,
-    Comma,
-    Colon,
-    Semicolon,
-    RArrow,
-    Eq,
-
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Mod,
-    Pow,
-    And,
-    Or,
-    BitXor,
-    BitAnd,
-    BitOr,
-    Shl,
-    Shr,
-    EqEq,
-    Lt,
-    Le,
-    Ne,
-    Ge,
-    Gt,
-
-    Not,
-    Neg,
-
-    Keyword,
-    True,
-    False,
+    Literal,
     Ident,
-    Type,
-    Bool,
-    Int,
-    Char,
+    LParen,
+    Eq,
+    UnOp,
+    BinOp(BinOp),
+
+    Other
 }
 
 impl fmt::Debug for Token {

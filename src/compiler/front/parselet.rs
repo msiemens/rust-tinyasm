@@ -1,45 +1,141 @@
 use std::collections::HashMap;
-use std::rc::Rc;
 use ast::*;
 use front::tokens::{Token, TokenType, Keyword};
 use front::parser::Parser;
 
 
-pub fn get_prefix_parselets() -> Rc<HashMap<TokenType, Box<PrefixParselet>>> {
-    macro_rules! register(
-        ($map:expr, $token:expr, $parselet:expr) => (
-            $map.insert($token, Box::new($parselet) as Box<PrefixParselet>)
-        )
-    );
-
-    thread_local! {
-        static PREFIX_PARSELETS: Rc<HashMap<TokenType, Box<PrefixParselet>>> = {
-            let mut map = HashMap::new();
-            register!(map, TokenType::Ident, IdentParselet);
-            register!(map, TokenType::Bool,  LiteralParselet);
-            register!(map, TokenType::Int,   LiteralParselet);
-            register!(map, TokenType::Char,  LiteralParselet);
-            register!(map, TokenType::True,  LiteralParselet);
-            register!(map, TokenType::False, LiteralParselet);
-            register!(map, TokenType::Not,   PrefixOperatorParselet);
-            register!(map, TokenType::Sub,   PrefixOperatorParselet);
-            register!(map, TokenType::LParen, GroupParselet);
-
-            Rc::new(map)
-        }
-    };
-
-    PREFIX_PARSELETS.with(|o| o.clone())
+enum Associativity {
+    Left,
+    Right
 }
+
+enum Precedence {
+    Call        = 13,
+    Prefix      = 12,
+    Exponent    = 11,
+    Product     = 10,
+    Sum         = 9,
+    Shift       = 8,
+    BitAnd      = 7,
+    BitXor      = 6,
+    BitOr       = 5,
+    Compare     = 4,
+    And         = 3,
+    Or          = 2,
+    Assignment  = 1
+}
+
+
+lazy_static! {
+    pub static ref PARSELET_MANAGER: ParseletManager = ParseletManager::new();
+}
+
+
+pub struct ParseletManager {
+    prefix: HashMap<TokenType, Box<PrefixParselet + Sync>>,
+    infix: HashMap<TokenType, Box<InfixParselet + Sync>>
+}
+
+impl ParseletManager {
+    pub fn new() -> ParseletManager {
+        ParseletManager {
+            prefix: HashMap::new(),
+            infix:  HashMap::new()
+        }.init()
+    }
+
+    pub fn lookup_prefix(&self, token: Token) -> Option<&PrefixParselet> {
+        self.prefix.get(&token.ty()).map(|p| &**p)
+    }
+
+    pub fn lookup_infix(&self, token: Token) -> Option<&InfixParselet> {
+        self.infix.get(&token.ty()).map(|p| &**p)
+    }
+
+    fn init(mut self) -> Self {
+        use self::Associativity::*;
+
+        // Prefix parselets
+        self.register_literal(TokenType::Literal);
+        self.register_prefix(TokenType::Ident,  IdentParselet);
+        self.register_prefix(TokenType::UnOp,   PrefixOperatorParselet);
+        self.register_prefix(TokenType::LParen, GroupParselet);
+
+        // Infix parselets
+        self.register_binop(TokenType::BinOp(BinOp::Add),    Precedence::Sum,      Left);
+        self.register_binop(TokenType::BinOp(BinOp::Sub),    Precedence::Sum,      Left);
+        self.register_binop(TokenType::BinOp(BinOp::Mul),    Precedence::Product,  Left);
+        self.register_binop(TokenType::BinOp(BinOp::Div),    Precedence::Product,  Left);
+        self.register_binop(TokenType::BinOp(BinOp::Mod),    Precedence::Product,  Left);
+        self.register_binop(TokenType::BinOp(BinOp::Pow),    Precedence::Exponent, Right);
+        self.register_binop(TokenType::BinOp(BinOp::And),    Precedence::And,      Left);
+        self.register_binop(TokenType::BinOp(BinOp::Or),     Precedence::Or,       Left);
+        self.register_binop(TokenType::BinOp(BinOp::BitXor), Precedence::BitXor,   Left);
+        self.register_binop(TokenType::BinOp(BinOp::BitAnd), Precedence::BitAnd,   Left);
+        self.register_binop(TokenType::BinOp(BinOp::BitOr),  Precedence::BitOr,    Left);
+        self.register_binop(TokenType::BinOp(BinOp::Shl),    Precedence::Shift,    Left);
+        self.register_binop(TokenType::BinOp(BinOp::Shr),    Precedence::Shift,    Left);
+        self.register_binop(TokenType::BinOp(BinOp::Lt),     Precedence::Compare,  Left);
+        self.register_binop(TokenType::BinOp(BinOp::Le),     Precedence::Compare,  Left);
+        self.register_binop(TokenType::BinOp(BinOp::Ne),     Precedence::Compare,  Left);
+        self.register_binop(TokenType::BinOp(BinOp::Ge),     Precedence::Compare,  Left);
+        self.register_binop(TokenType::BinOp(BinOp::Gt),     Precedence::Compare,  Left);
+        self.register_binop(TokenType::BinOp(BinOp::EqEq),   Precedence::Compare,  Left);
+        self.register_infix(TokenType::Eq,                   AssignParselet);
+        self.register_infix(TokenType::LParen,               CallParselet);
+
+        self
+    }
+
+    fn register_literal(&mut self, t: TokenType) {
+        self.prefix.insert(t, Box::new(LiteralParselet));
+    }
+
+    fn register_prefix<P: PrefixParselet + Sync + 'static>(&mut self, t: TokenType, p: P) {
+        self.prefix.insert(t, Box::new(p));
+    }
+
+    fn register_binop(&mut self,
+                      t: TokenType,
+                      precedence: Precedence,
+                      assoc: Associativity)
+    {
+        self.infix.insert(t, Box::new(BinaryOperatorParselet {
+            preced: precedence as u32,
+            assoc: assoc
+        }));
+    }
+
+    fn register_infix<P: InfixParselet + Sync + 'static>(&mut self, t: TokenType, p: P) {
+        self.infix.insert(t, Box::new(p));
+    }
+}
+
+
+// --- Prefix Parselets ---------------------------------------------------------
 
 pub trait PrefixParselet {
     fn parse(&self, parser: &mut Parser, token: Token) -> Node<Expression>;
     fn name(&self) -> &'static str;
 }
 
-pub struct IdentParselet;
-impl PrefixParselet for IdentParselet {
-    fn parse(&self, parser: &mut Parser, token: Token) -> Node<Expression> {
+macro_rules! define_prefix(
+    ($name:ident: fn parse($parser:ident, $token:ident) -> Node<Expression> $body:block) => {
+        pub struct $name;
+
+        impl PrefixParselet for $name {
+            #[allow(unused_variables)]
+            fn parse(&self, $parser: &mut Parser, $token: Token) -> Node<Expression> {
+                $body
+            }
+
+            fn name(&self) -> &'static str { stringify!($name) }
+        }
+    }
+);
+
+define_prefix!(IdentParselet:
+    fn parse(parser, token) -> Node<Expression> {
         let ident = match token {
             Token::Ident(id) => id,
             _ => parser.unexpected_token(Some("an identifier"))
@@ -47,13 +143,10 @@ impl PrefixParselet for IdentParselet {
 
         Node::new(Expression::Variable { name: ident })
     }
+);
 
-    fn name(&self) -> &'static str { "IdentParselet" }
-}
-
-pub struct LiteralParselet;
-impl PrefixParselet for LiteralParselet {
-    fn parse(&self, parser: &mut Parser, token: Token) -> Node<Expression> {
+define_prefix!(LiteralParselet:
+    fn parse(parser, token) -> Node<Expression> {
         let value = match token {
             Token::Int(i) => Value::Int(i),
             Token::Char(c) => Value::Char(c),
@@ -66,13 +159,10 @@ impl PrefixParselet for LiteralParselet {
             val: value
         })
     }
+);
 
-    fn name(&self) -> &'static str { "LiteralParselet" }
-}
-
-pub struct PrefixOperatorParselet;
-impl PrefixParselet for PrefixOperatorParselet {
-    fn parse(&self, parser: &mut Parser, token: Token) -> Node<Expression> {
+define_prefix!(PrefixOperatorParselet:
+    fn parse(parser, token) -> Node<Expression> {
         let operand = parser.parse_expression();
         let op = match token {
             Token::UnOp(op) => op,
@@ -82,85 +172,53 @@ impl PrefixParselet for PrefixOperatorParselet {
 
         Node::new(Expression::Prefix { op: op, item: Box::new(operand) })
     }
+);
 
-    fn name(&self) -> &'static str { "PrefixOperatorParselet" }
-}
-
-pub struct GroupParselet;
-impl PrefixParselet for GroupParselet {
-    fn parse(&self, parser: &mut Parser, token: Token) -> Node<Expression> {
+define_prefix!(GroupParselet:
+    fn parse(parser, token) -> Node<Expression> {
         let expr = parser.parse_expression();
         parser.expect(Token::RParen);
 
         expr
     }
-
-    fn name(&self) -> &'static str { "GroupParselet" }
-}
+);
 
 
-pub fn get_infix_parselets() -> Rc<HashMap<TokenType, Box<InfixParselet>>> {
-    macro_rules! register(
-        ($map:expr, $token:expr, $parselet:expr) => (
-            $map.insert($token, Box::new($parselet) as Box<InfixParselet>)
-        )
-    );
-
-    thread_local! {
-        static INFIX_PARSELETS: Rc<HashMap<TokenType, Box<InfixParselet>>> = {
-            let mut map = HashMap::new();
-            register!(map, TokenType::Add,    BinaryOperatorParselet);
-            register!(map, TokenType::Sub,    BinaryOperatorParselet);
-            register!(map, TokenType::Mul,    BinaryOperatorParselet);
-            register!(map, TokenType::Div,    BinaryOperatorParselet);
-            register!(map, TokenType::Mod,    BinaryOperatorParselet);
-            register!(map, TokenType::Pow,    BinaryOperatorParselet);
-            register!(map, TokenType::And,    BinaryOperatorParselet);
-            register!(map, TokenType::Or,     BinaryOperatorParselet);
-            register!(map, TokenType::BitXor, BinaryOperatorParselet);
-            register!(map, TokenType::BitAnd, BinaryOperatorParselet);
-            register!(map, TokenType::BitOr,  BinaryOperatorParselet);
-            register!(map, TokenType::Shl,    BinaryOperatorParselet);
-            register!(map, TokenType::Shr,    BinaryOperatorParselet);
-            register!(map, TokenType::Lt,     BinaryOperatorParselet);
-            register!(map, TokenType::Le,     BinaryOperatorParselet);
-            register!(map, TokenType::Ne,     BinaryOperatorParselet);
-            register!(map, TokenType::Ge,     BinaryOperatorParselet);
-            register!(map, TokenType::Gt,     BinaryOperatorParselet);
-            register!(map, TokenType::EqEq,   BinaryOperatorParselet);
-            register!(map, TokenType::Eq,     AssignParselet);
-            register!(map, TokenType::LParen, CallParselet);
-
-            Rc::new(map)
-        }
-    };
-
-    INFIX_PARSELETS.with(|o| o.clone())
-}
+// --- Infix Parselets ----------------------------------------------------------
 
 pub trait InfixParselet {
     fn parse(&self, parser: &mut Parser, left: Node<Expression>, token: Token) -> Node<Expression>;
+    fn precedence(&self) -> u32;
     fn name(&self) -> &'static str;
 }
 
-pub struct BinaryOperatorParselet;
+
+pub struct BinaryOperatorParselet {
+    preced: u32,
+    assoc: Associativity
+}
+
 impl InfixParselet for BinaryOperatorParselet {
     fn parse(&self, parser: &mut Parser, left: Node<Expression>, token: Token) -> Node<Expression> {
+        use self::Associativity::*;
+
         let op = match token {
             Token::BinOp(op) => op,
             _ => parser.unexpected_token(Some("a binary operator"))
         };
 
+        let precedence = self.preced - match self.assoc { Left => 0, Right => 1 };
+
         if parser.token == Token::Eq {
             parser.bump();
-            let right = parser.parse_expression();
+            let right = parser.parse_expression_with_precedence(precedence);
             Node::new(Expression::AssignOp {
                 op: op,
                 lhs: Box::new(left),
                 rhs: Box::new(right)
             })
         } else {
-            let right = parser.parse_expression();
+            let right = parser.parse_expression_with_precedence(precedence);
             Node::new(Expression::Infix {
                 op: op,
                 lhs: Box::new(left),
@@ -170,17 +228,16 @@ impl InfixParselet for BinaryOperatorParselet {
     }
 
     fn name(&self) -> &'static str { "BinaryOperatorParselet" }
+
+    fn precedence(&self) -> u32 { self.preced }
 }
 
+
 pub struct AssignParselet;
+
 impl InfixParselet for AssignParselet {
     fn parse(&self, parser: &mut Parser, left: Node<Expression>, token: Token) -> Node<Expression> {
         let right = parser.parse_expression();
-
-        /*match *left {
-            Expression::Variable {..} => {},
-            _ => panic!("not a name")
-        }*/
 
         Node::new(Expression::Assign {
             lhs: Box::new(left),
@@ -189,17 +246,16 @@ impl InfixParselet for AssignParselet {
     }
 
     fn name(&self) -> &'static str { "AssignParselet" }
+
+    fn precedence(&self) -> u32 { Precedence::Assignment as u32 }
 }
 
+
 pub struct CallParselet;
+
 impl InfixParselet for CallParselet {
     fn parse(&self, parser: &mut Parser, left: Node<Expression>, token: Token) -> Node<Expression> {
         let mut args = vec![];
-
-        /*match *left {
-            Expression::Variable {..} => {},
-            _ => panic!("not a name")
-        }*/
 
         while parser.token != Token::RParen {
             args.push(parser.parse_expression());
@@ -217,4 +273,6 @@ impl InfixParselet for CallParselet {
     }
 
     fn name(&self) -> &'static str { "CallParselet" }
+
+    fn precedence(&self) -> u32 { Precedence::Call as u32 }
 }
