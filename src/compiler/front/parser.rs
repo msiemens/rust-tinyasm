@@ -82,7 +82,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn look_ahead<F, R>(&mut self, distance: usize, f: F) -> R where F: Fn(Token) -> R {
+    pub fn look_ahead<F, R>(&mut self, distance: usize, f: F) -> R where F: Fn(Token) -> R {
         if self.buffer.len() < distance {
             for _ in 0 .. distance - self.buffer.len() {
                 self.buffer.push_back(self.lexer.next_token());

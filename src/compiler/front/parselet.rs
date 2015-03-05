@@ -146,17 +146,27 @@ pub trait InfixParselet {
 pub struct BinaryOperatorParselet;
 impl InfixParselet for BinaryOperatorParselet {
     fn parse(&self, parser: &mut Parser, left: Node<Expression>, token: Token) -> Node<Expression> {
-        let right = parser.parse_expression();
         let op = match token {
             Token::BinOp(op) => op,
             _ => parser.unexpected_token(Some("a binary operator"))
         };
 
-        Node::new(Expression::Infix {
-            op: op,
-            left: Box::new(left),
-            right: Box::new(right)
-        })
+        if parser.token == Token::Eq {
+            parser.bump();
+            let right = parser.parse_expression();
+            Node::new(Expression::AssignOp {
+                op: op,
+                lhs: Box::new(left),
+                rhs: Box::new(right)
+            })
+        } else {
+            let right = parser.parse_expression();
+            Node::new(Expression::Infix {
+                op: op,
+                lhs: Box::new(left),
+                rhs: Box::new(right)
+            })
+        }
     }
 
     fn name(&self) -> &'static str { "BinaryOperatorParselet" }

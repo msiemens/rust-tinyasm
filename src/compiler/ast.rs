@@ -144,8 +144,8 @@ pub enum Expression {
     },
     Infix {
         op: BinOp,
-        left: Box<Node<Expression>>,
-        right: Box<Node<Expression>>
+        lhs: Box<Node<Expression>>,
+        rhs: Box<Node<Expression>>
     },
     Prefix {
         op: UnOp,
